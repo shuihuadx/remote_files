@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="org.dx.remotefiles.remote_files">
+    <uses-permission android:name="android.permission.INTERNET"/>
    <application
         android:label="remote_files"
         android:name="${applicationName}"

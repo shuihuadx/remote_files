@@ -103,6 +103,9 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     items: menuItems,
                     elevation: 8.0,
                   );
+                  if (value == null) {
+                    return;
+                  }
                   if (value == 1) {
                     // 添加服务器
                     if (mounted) {
@@ -192,8 +195,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       arguments: remoteFile.url,
                     );
                   } else {
-                    // Share.shareUri(Uri.parse(remoteFile.url));
-                    if (FileUtils.isVideoFile(remoteFile.fileName) && Platform.isWindows) {
+                    if (Platform.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
                       Configs configs = Configs.getInstanceSync();
                       String videoPlayerPath = configs.videoPlayerPath;
                       if (videoPlayerPath.isEmpty) {
