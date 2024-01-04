@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: App.navigatorKey,
-      title: 'RemoteFiles',
+      title: 'CC Movies',
       theme: Provider.of<ThemeModel>(context).themeData,
       routes: {
         AddServerPage.routeName: (context) => const AddServerPage(enableBack: true),

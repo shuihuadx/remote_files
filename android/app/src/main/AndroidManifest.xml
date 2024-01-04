@@ -2,7 +2,7 @@
     package="org.dx.remotefiles.remote_files">
     <uses-permission android:name="android.permission.INTERNET"/>
    <application
-        android:label="remote_files"
+        android:label="CC Movies"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
