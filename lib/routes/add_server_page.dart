@@ -101,11 +101,31 @@ class _AddServerPageState extends State<AddServerPage> {
                   try {
                     await remoteFilesFetcher.fetchRemoteFiles(_serverUrl);
                   } catch (e) {
-                    SnackUtils.showSnack(
-                      context,
-                      message: '无法连接到文件服务器,请检查地址是否正确!',
-                      backgroundColor: Colors.red,
-                    );
+                    // 文件服务器无法访问时, 检查网络是否正常
+                    bool isNetworkOk = false;
+                    Object? reason;
+                    try{
+                      isNetworkOk = await remoteFilesFetcher.checkNetwork();
+                    } catch (e2){
+                      reason = e2;
+                    }
+                    if(mounted) {
+                      if(isNetworkOk){
+                        SnackUtils.showSnack(
+                          context,
+                          message: '无法连接到文件服务器,请检查地址是否正确!reason is $e',
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 2),
+                        );
+                      } else {
+                        SnackUtils.showSnack(
+                          context,
+                          message: '无法访问网络,请检查网络是否正常!reason is $reason',
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 2),
+                        );
+                      }
+                    }
                     return;
                   }
                   Configs configs = Configs.getInstanceSync();

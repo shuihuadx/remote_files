@@ -5,11 +5,12 @@ class SnackUtils {
     BuildContext context, {
     required String message,
     backgroundColor = Colors.red,
+    duration = const Duration(seconds: 1),
   }) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        duration: const Duration(seconds: 1),
+        duration: duration,
         backgroundColor: backgroundColor,
       ),
     );

@@ -16,6 +16,11 @@ class RemoteFilesFetcher {
     dio.interceptors.add(NetworkLogger());
   }
 
+  Future<bool> checkNetwork() async {
+    Response response = await dio.get('https://bing.com');
+    return response.statusCode == 200;
+  }
+
   String _shortFileName(String fileName) {
     String result = fileName.replaceAll(RegExp(r'【.*?】'), '');
     return result;

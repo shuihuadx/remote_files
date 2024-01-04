@@ -213,6 +213,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                           context,
                           message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
                           backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 2),
                         );
                       }
                     }

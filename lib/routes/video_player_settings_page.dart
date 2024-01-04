@@ -87,7 +87,8 @@ class _VideoPlayerSettingsPageState extends State<VideoPlayerSettingsPage> {
                   if (mounted) {
                     SnackUtils.showSnack(
                       context,
-                      message: "文件无法读取, 请确认是否选中视频播放器可执行文件",
+                      message: "文件无法读取, 请确认是否选中视频播放器exe可执行文件",
+                      duration: const Duration(seconds: 2),
                     );
                   }
                 }
