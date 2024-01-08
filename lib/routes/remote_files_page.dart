@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/entities/remote_file.dart';
+import 'package:remote_files/method_channel/remote_file_method_channel.dart';
 import 'package:remote_files/network/remote_files_fetcher.dart';
 import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
@@ -205,16 +206,18 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                         videoPlayerPath,
                         args: [remoteFile.url],
                       );
-                      return;
-                    }
-                    if (!await launchUrl(Uri.parse(remoteFile.url))) {
-                      if (mounted) {
-                        SnackUtils.showSnack(
-                          context,
-                          message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 2),
-                        );
+                    } else if (Platform.isAndroid) {
+                      RemoteFileMethodChannel.launchRemoteFile(remoteFile);
+                    } else {
+                      if (!await launchUrl(Uri.parse(remoteFile.url))) {
+                        if (mounted) {
+                          SnackUtils.showSnack(
+                            context,
+                            message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 2),
+                          );
+                        }
                       }
                     }
                   }
@@ -248,7 +251,7 @@ class FileItem extends StatelessWidget {
   final String url;
   final bool isDir;
 
-  FileItem({
+  const FileItem({
     super.key,
     required this.fileName,
     required this.url,
