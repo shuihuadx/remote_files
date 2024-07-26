@@ -32,6 +32,7 @@ class _AddServerPageState extends State<AddServerPage> {
     return Scaffold(
       appBar: AppBar(
         systemOverlayStyle: AppTheme.systemOverlayStyle,
+        backgroundColor: Theme.of(context).primaryColor,
         leading: widget.enableBack
             ? IconButton(
                 icon: const Icon(
@@ -50,17 +51,17 @@ class _AddServerPageState extends State<AddServerPage> {
         ),
       ),
       backgroundColor: Colors.white,
-      body: WillPopScope(
-        onWillPop: () async {
-          // 拦截物理返回按钮
+      body: PopScope(
+        canPop: widget.enableBack,
+        onPopInvoked: (didPop) {
           if (!widget.enableBack) {
+            // 拦截物理返回按钮
             SnackUtils.showSnack(
               context,
               message: '没有上一页了',
               backgroundColor: Theme.of(context).primaryColor,
             );
           }
-          return widget.enableBack;
         },
         child: Column(
           children: [
@@ -104,13 +105,13 @@ class _AddServerPageState extends State<AddServerPage> {
                     // 文件服务器无法访问时, 检查网络是否正常
                     bool isNetworkOk = false;
                     Object? reason;
-                    try{
+                    try {
                       isNetworkOk = await remoteFilesFetcher.checkNetwork();
-                    } catch (e2){
+                    } catch (e2) {
                       reason = e2;
                     }
-                    if(mounted) {
-                      if(isNetworkOk){
+                    if (mounted) {
+                      if (isNetworkOk) {
                         SnackUtils.showSnack(
                           context,
                           message: '无法连接到文件服务器,请检查地址是否正确!reason is $e',

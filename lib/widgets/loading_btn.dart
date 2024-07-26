@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 enum BtnStatus {
@@ -7,11 +9,12 @@ enum BtnStatus {
   disable,
 }
 
-typedef TapCallback = Future<void> Function();
+typedef TapCallback = FutureOr<void> Function();
 
 class LoadingBtn extends StatefulWidget {
   final Color color;
   final String? text;
+  final double? textFontSize;
   final String? loadingText;
   final BorderRadiusGeometry? borderRadius;
   final TapCallback? onTap;
@@ -21,6 +24,7 @@ class LoadingBtn extends StatefulWidget {
     Key? key,
     required this.color,
     this.text,
+    this.textFontSize = 18,
     this.loadingText,
     this.borderRadius,
     this.onTap,
@@ -102,7 +106,7 @@ class _LoadingBtnState extends State<LoadingBtn> {
                 color: _btnStatus == BtnStatus.normal || _btnStatus == BtnStatus.loading
                     ? Colors.white
                     : const Color.fromARGB(102, 255, 255, 255),
-                fontSize: 18,
+                fontSize: widget.textFontSize,
               ),
             ),
           ],

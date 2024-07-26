@@ -7,6 +7,7 @@ import 'package:remote_files/entities/remote_file.dart';
 import 'package:remote_files/method_channel/remote_file_method_channel.dart';
 import 'package:remote_files/network/remote_files_fetcher.dart';
 import 'package:remote_files/routes/add_server_page.dart';
+import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
@@ -66,110 +67,185 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: isRootUrl
-            ? IconButton(
-                icon: const Icon(
-                  Icons.menu,
-                  color: Colors.white,
-                ),
-                onPressed: () async {
-                  Configs configs = Configs.getInstanceSync();
-                  List<PopupMenuItem> menuItems = [];
-                  for (var remoteServer in configs.remoteServers) {
-                    if (remoteServer.serverUrl != configs.currentServerUrl) {
-                      menuItems.add(PopupMenuItem(
-                        value: remoteServer.serverUrl,
-                        child: Text(remoteServer.serverName),
-                      ));
-                    }
-                  }
-                  menuItems.add(const PopupMenuItem(
-                    value: 1,
-                    child: Text('添加服务器'),
-                  ));
-                  if (Platform.isWindows) {
-                    menuItems.add(const PopupMenuItem(
-                      value: 2,
-                      child: Text('视频播放器设置'),
-                    ));
-                  }
-                  menuItems.add(const PopupMenuItem(
-                    value: 3,
-                    child: Text('设置主题色'),
-                  ));
-
-                  dynamic value = await showMenu(
-                    context: context,
-                    position: const RelativeRect.fromLTRB(0, 80, 0, 0),
-                    items: menuItems,
-                    elevation: 8.0,
+        backgroundColor: Theme.of(context).primaryColor,
+        leading: Builder(
+          builder: (BuildContext context) {
+            return isRootUrl
+                ? IconButton(
+                    icon: const Icon(
+                      Icons.menu,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                  )
+                : IconButton(
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
                   );
-                  if (value == null) {
-                    return;
-                  }
-                  if (value == 1) {
-                    // 添加服务器
-                    if (mounted) {
-                      Navigator.of(context).pushNamed(AddServerPage.routeName);
-                    }
-                    return;
-                  } else if (value == 2) {
-                    // 添加服务器
-                    if (mounted) {
-                      Navigator.of(context).pushNamed(VideoPlayerSettingsPage.routeName);
-                    }
-                    return;
-                  } else if (value == 3) {
-                    // 设置主题色
-                    if (mounted) {
-                      Navigator.of(context).pushNamed(ThemeColorSettingsPage.routeName);
-                    }
-                    return;
-                  } else {
-                    configs.currentServerUrl = value;
-                    await configs.save();
-                    setState(() {
-                      _futureBuilderKey = GlobalKey();
-                      _future = remoteFilesFetcher.fetchRemoteFiles(value);
-                      isRootUrl = true;
-                      title = getPageTitle(isRootUrl);
-                    });
-                  }
-                },
-              )
-            : IconButton(
-                icon: const Icon(
-                  Icons.arrow_back,
-                  color: Colors.white,
-                ),
-                onPressed: () {
-                  Navigator.of(context).pop(false);
-                },
-              ),
-        automaticallyImplyLeading: !isRootUrl,
+          },
+        ),
         systemOverlayStyle: AppTheme.systemOverlayStyle,
         title: Text(
           title,
           style: const TextStyle(fontSize: 18, color: Colors.white),
         ),
       ),
-      body: isRootUrl
-          ? WillPopScope(
-              onWillPop: () async {
-                if (isRootUrl) {
-                  SnackUtils.showSnack(
-                    context,
-                    message: '没有上一页了',
-                    backgroundColor: Theme.of(context).primaryColor,
-                  );
-                  return false;
-                }
-                return true;
-              },
-              child: remoteFilesList(),
-            )
-          : remoteFilesList(),
+      drawer: Drawer(
+        child: Builder(
+          builder: (context) {
+            return ListView(
+              // Important: Remove any padding from the ListView.
+              padding: EdgeInsets.zero,
+              children: [
+                DrawerHeader(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                  ),
+                  child: const Text(
+                    'Remote Files',
+                    style: TextStyle(fontSize: 18, color: Colors.white),
+                  ),
+                ),
+                Platform.isWindows
+                    ? ListTile(
+                        title: const Text('视频播放器设置'),
+                        onTap: () {
+                          // 视频播放器设置
+                          if (mounted) {
+                            Navigator.of(context).pushNamed(VideoPlayerSettingsPage.routeName);
+                          }
+                          return;
+                        },
+                      )
+                    : const SizedBox(),
+                ListTile(
+                  title: const Text('服务器管理'),
+                  onTap: () {
+                    // 服务器管理
+                    if (mounted) {
+                      // Close the drawer
+                      Scaffold.of(context).closeDrawer();
+
+                      var oldCurrentServerUrl = Configs.getInstanceSync().currentServerUrl;
+                      Navigator.of(context).pushNamed(ServerListPage.routeName).then((value) {
+                        var currentServerUrl = Configs.getInstanceSync().currentServerUrl;
+                        if (oldCurrentServerUrl != currentServerUrl) {
+                          setState(() {
+                            _futureBuilderKey = GlobalKey();
+                            _future = remoteFilesFetcher.fetchRemoteFiles(currentServerUrl);
+                            isRootUrl = true;
+                            title = getPageTitle(isRootUrl);
+                          });
+                        }
+                      });
+                    }
+                  },
+                ),
+                ListTile(
+                  title: const Text('设置主题色'),
+                  onTap: () {
+                    // 设置主题色
+                    if (mounted) {
+                      // Close the drawer
+                      Scaffold.of(context).closeDrawer();
+
+                      Navigator.of(context).pushNamed(ThemeColorSettingsPage.routeName);
+                    }
+                  },
+                ),
+              ],
+            );
+          },
+        ),
+      ),
+      body: PopScope(
+        canPop: !isRootUrl,
+        onPopInvoked: (didPop) {
+          if (isRootUrl) {
+            SnackUtils.showSnack(
+              context,
+              message: '没有上一页了',
+              backgroundColor: Theme.of(context).primaryColor,
+            );
+          }
+        },
+        child: remoteFilesList(),
+      ),
     );
+  }
+
+  void test() async {
+    {
+      Configs configs = Configs.getInstanceSync();
+      List<PopupMenuItem> menuItems = [];
+      for (var remoteServer in configs.remoteServers) {
+        if (remoteServer.serverUrl != configs.currentServerUrl) {
+          menuItems.add(PopupMenuItem(
+            value: remoteServer.serverUrl,
+            child: Text(remoteServer.serverName),
+          ));
+        }
+      }
+      menuItems.add(const PopupMenuItem(
+        value: 1,
+        child: Text('添加服务器'),
+      ));
+      if (Platform.isWindows) {
+        menuItems.add(const PopupMenuItem(
+          value: 2,
+          child: Text('视频播放器设置'),
+        ));
+      }
+      menuItems.add(const PopupMenuItem(
+        value: 3,
+        child: Text('设置主题色'),
+      ));
+
+      dynamic value = await showMenu(
+        context: context,
+        position: const RelativeRect.fromLTRB(0, 80, 0, 0),
+        items: menuItems,
+        elevation: 8.0,
+      );
+      if (value == null) {
+        return;
+      }
+      if (value == 1) {
+        // 添加服务器
+        if (mounted) {
+          Navigator.of(context).pushNamed(AddServerPage.routeName);
+        }
+        return;
+      } else if (value == 2) {
+        // 添加服务器
+        if (mounted) {
+          Navigator.of(context).pushNamed(VideoPlayerSettingsPage.routeName);
+        }
+        return;
+      } else if (value == 3) {
+        // 设置主题色
+        if (mounted) {
+          Navigator.of(context).pushNamed(ThemeColorSettingsPage.routeName);
+        }
+        return;
+      } else {
+        configs.currentServerUrl = value;
+        await configs.save();
+        setState(() {
+          _futureBuilderKey = GlobalKey();
+          _future = remoteFilesFetcher.fetchRemoteFiles(value);
+          isRootUrl = true;
+          title = getPageTitle(isRootUrl);
+        });
+      }
+    }
   }
 
   Widget remoteFilesList() {

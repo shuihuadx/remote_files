@@ -4,6 +4,7 @@ import 'package:remote_files/app.dart';
 import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/routes/main_page.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
+import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
         AddServerPage.disableBackRouteName: (context) => const AddServerPage(enableBack: false),
         ThemeColorSettingsPage.routeName: (context) => const ThemeColorSettingsPage(),
         VideoPlayerSettingsPage.routeName: (context) => const VideoPlayerSettingsPage(),
+        ServerListPage.routeName: (context) => const ServerListPage(),
         '/': (context) => const MainPage(),
       },
       onGenerateRoute: (RouteSettings settings) {

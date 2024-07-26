@@ -47,6 +47,7 @@ class _ThemeColorSettingsPageState extends State<ThemeColorSettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Theme.of(context).primaryColor,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,

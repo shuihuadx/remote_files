@@ -23,6 +23,7 @@ class _VideoPlayerSettingsPageState extends State<VideoPlayerSettingsPage> {
     return Scaffold(
       appBar: AppBar(
         systemOverlayStyle: AppTheme.systemOverlayStyle,
+        backgroundColor: Theme.of(context).primaryColor,
         leading: IconButton(
           icon: const Icon(
             Icons.arrow_back,
