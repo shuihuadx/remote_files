@@ -85,9 +85,7 @@ class _ThemeColorSettingsPageState extends State<ThemeColorSettingsPage> {
                 _selectedIndex = index;
                 _themeColor = themeColors[index].value;
               });
-              AppTheme.themeModel.setThemeData(ThemeData(
-                primarySwatch: AppTheme.createMaterialColor(themeColors[index]),
-              ));
+              AppTheme.themeModel.setThemeData(AppTheme.createThemeDataByColor(themeColors[index]));
               Configs configs = Configs.getInstanceSync();
               configs.themeColor = _themeColor;
               configs.save();

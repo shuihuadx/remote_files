@@ -16,9 +16,7 @@ class _MainPageState extends State<MainPage> {
   @override
   void initState() {
     Configs.getInstance().then((configs) {
-      AppTheme.themeModel.setThemeData(ThemeData(
-        primarySwatch: AppTheme.createMaterialColor(Color(configs.themeColor)),
-      ));
+      AppTheme.themeModel.setThemeData(AppTheme.createThemeDataByColor(Color(configs.themeColor)));
       if (configs.remoteServers.isEmpty) {
         // 还没有服务器配置信息, 跳转到添加服务器页面
         Navigator.of(context).pushNamed(AddServerPage.disableBackRouteName);

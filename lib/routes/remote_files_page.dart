@@ -6,16 +6,17 @@ import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/entities/remote_file.dart';
 import 'package:remote_files/method_channel/remote_file_method_channel.dart';
 import 'package:remote_files/network/remote_files_fetcher.dart';
-import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/codec_utils.dart';
+import 'package:remote_files/utils/dlna_utils.dart';
 import 'package:remote_files/utils/file_utils.dart';
 import 'package:remote_files/utils/process_helper.dart';
 import 'package:remote_files/utils/snack_utils.dart';
 import 'package:remote_files/utils/url_utils.dart';
+import 'package:remote_files/widgets/dlna_devices_widget.dart';
 import 'package:remote_files/widgets/loading_widget.dart';
 import 'package:remote_files/widgets/reloading_widget.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -46,8 +47,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
       return Configs.getInstanceSync()
           .remoteServers
           .firstWhere(
-            (remoteServer) => Configs.getInstanceSync().currentServerUrl == remoteServer.serverUrl,
-          )
+            (remoteServer) =>
+        Configs.getInstanceSync().currentServerUrl ==
+            remoteServer.serverUrl,
+      )
           .serverName;
     } else {
       return UrlUtils.getUrlLastPath(CodecUtils.urlDecode(url));
@@ -56,6 +59,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
 
   @override
   void initState() {
+    DlnaUtils.startSearch();
+
     url = widget.url;
     isRootUrl = Configs.getInstanceSync().currentServerUrl == url;
     title = getPageTitle(isRootUrl);
@@ -72,23 +77,23 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
           builder: (BuildContext context) {
             return isRootUrl
                 ? IconButton(
-                    icon: const Icon(
-                      Icons.menu,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Scaffold.of(context).openDrawer();
-                    },
-                  )
+              icon: const Icon(
+                Icons.menu,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Scaffold.of(context).openDrawer();
+              },
+            )
                 : IconButton(
-                    icon: const Icon(
-                      Icons.arrow_back,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop(false);
-                    },
-                  );
+              icon: const Icon(
+                Icons.arrow_back,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                Navigator.of(context).pop(false);
+              },
+            );
           },
         ),
         systemOverlayStyle: AppTheme.systemOverlayStyle,
@@ -115,15 +120,16 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                 ),
                 Platform.isWindows
                     ? ListTile(
-                        title: const Text('视频播放器设置'),
-                        onTap: () {
-                          // 视频播放器设置
-                          if (mounted) {
-                            Navigator.of(context).pushNamed(VideoPlayerSettingsPage.routeName);
-                          }
-                          return;
-                        },
-                      )
+                  title: const Text('视频播放器设置'),
+                  onTap: () {
+                    // 视频播放器设置
+                    if (mounted) {
+                      Navigator.of(context)
+                          .pushNamed(VideoPlayerSettingsPage.routeName);
+                    }
+                    return;
+                  },
+                )
                     : const SizedBox(),
                 ListTile(
                   title: const Text('服务器管理'),
@@ -133,13 +139,18 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       // Close the drawer
                       Scaffold.of(context).closeDrawer();
 
-                      var oldCurrentServerUrl = Configs.getInstanceSync().currentServerUrl;
-                      Navigator.of(context).pushNamed(ServerListPage.routeName).then((value) {
-                        var currentServerUrl = Configs.getInstanceSync().currentServerUrl;
+                      var oldCurrentServerUrl =
+                          Configs.getInstanceSync().currentServerUrl;
+                      Navigator.of(context)
+                          .pushNamed(ServerListPage.routeName)
+                          .then((value) {
+                        var currentServerUrl =
+                            Configs.getInstanceSync().currentServerUrl;
                         if (oldCurrentServerUrl != currentServerUrl) {
                           setState(() {
                             _futureBuilderKey = GlobalKey();
-                            _future = remoteFilesFetcher.fetchRemoteFiles(currentServerUrl);
+                            _future = remoteFilesFetcher
+                                .fetchRemoteFiles(currentServerUrl);
                             isRootUrl = true;
                             title = getPageTitle(isRootUrl);
                           });
@@ -156,10 +167,16 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       // Close the drawer
                       Scaffold.of(context).closeDrawer();
 
-                      Navigator.of(context).pushNamed(ThemeColorSettingsPage.routeName);
+                      Navigator.of(context)
+                          .pushNamed(ThemeColorSettingsPage.routeName);
                     }
                   },
                 ),
+                // ListTile(
+                //   title: const Text('测试'),
+                //   onTap: () {
+                //   },
+                // ),
               ],
             );
           },
@@ -179,73 +196,6 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
         child: remoteFilesList(),
       ),
     );
-  }
-
-  void test() async {
-    {
-      Configs configs = Configs.getInstanceSync();
-      List<PopupMenuItem> menuItems = [];
-      for (var remoteServer in configs.remoteServers) {
-        if (remoteServer.serverUrl != configs.currentServerUrl) {
-          menuItems.add(PopupMenuItem(
-            value: remoteServer.serverUrl,
-            child: Text(remoteServer.serverName),
-          ));
-        }
-      }
-      menuItems.add(const PopupMenuItem(
-        value: 1,
-        child: Text('添加服务器'),
-      ));
-      if (Platform.isWindows) {
-        menuItems.add(const PopupMenuItem(
-          value: 2,
-          child: Text('视频播放器设置'),
-        ));
-      }
-      menuItems.add(const PopupMenuItem(
-        value: 3,
-        child: Text('设置主题色'),
-      ));
-
-      dynamic value = await showMenu(
-        context: context,
-        position: const RelativeRect.fromLTRB(0, 80, 0, 0),
-        items: menuItems,
-        elevation: 8.0,
-      );
-      if (value == null) {
-        return;
-      }
-      if (value == 1) {
-        // 添加服务器
-        if (mounted) {
-          Navigator.of(context).pushNamed(AddServerPage.routeName);
-        }
-        return;
-      } else if (value == 2) {
-        // 添加服务器
-        if (mounted) {
-          Navigator.of(context).pushNamed(VideoPlayerSettingsPage.routeName);
-        }
-        return;
-      } else if (value == 3) {
-        // 设置主题色
-        if (mounted) {
-          Navigator.of(context).pushNamed(ThemeColorSettingsPage.routeName);
-        }
-        return;
-      } else {
-        configs.currentServerUrl = value;
-        await configs.save();
-        setState(() {
-          _futureBuilderKey = GlobalKey();
-          _future = remoteFilesFetcher.fetchRemoteFiles(value);
-          isRootUrl = true;
-          title = getPageTitle(isRootUrl);
-        });
-      }
-    }
   }
 
   Widget remoteFilesList() {
@@ -272,11 +222,13 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       arguments: remoteFile.url,
                     );
                   } else {
-                    if (Platform.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
+                    if (Platform.isWindows &&
+                        FileUtils.isVideoFile(remoteFile.fileName)) {
                       Configs configs = Configs.getInstanceSync();
                       String videoPlayerPath = configs.videoPlayerPath;
                       if (videoPlayerPath.isEmpty) {
-                        videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
+                        videoPlayerPath =
+                        'C:/Program Files/Windows Media Player/wmplayer.exe';
                       }
                       ProcessHelper.run(
                         videoPlayerPath,
@@ -343,11 +295,6 @@ class FileItem extends StatelessWidget {
         size: 48,
       );
     }
-    Icon(
-      Icons.image,
-      color: themeColor,
-      size: 48,
-    );
     switch (FileUtils.getFileType(fileName)) {
       case FileType.video:
         return Icon(
@@ -439,17 +386,27 @@ class FileItem extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTap: () {
-                    Clipboard.setData(ClipboardData(text: url));
-                    SnackUtils.showSnack(
-                      context,
-                      message: '已复制文件地址',
-                      backgroundColor: Theme.of(context).primaryColor,
+                  onTapDown: (TapDownDetails details) {
+                    FileType fileType = FileUtils.getFileType(fileName);
+                    showMoreMenus(
+                      context: context,
+                      url: url,
+                      position: Offset(
+                        details.globalPosition.dx,
+                        details.globalPosition.dy,
+                      ),
+                      enableDLNA: !isDir &&
+                          (fileType == FileType.video ||
+                              fileType == FileType.audio ||
+                              fileType == FileType.image),
+                      // TODO 文件下载待实现
+                      // enableDownload: !isDir,
                     );
                   },
-                  child: const Padding(
-                    padding: EdgeInsets.only(right: 12),
-                    child: Icon(
+                  child: Container(
+                    color: Colors.transparent,
+                    padding: const EdgeInsets.all(12),
+                    child: const Icon(
                       Icons.more_vert,
                       color: Colors.grey,
                       size: 20,
@@ -462,5 +419,83 @@ class FileItem extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void showMoreMenus({
+    required BuildContext context,
+    required String url,
+    required Offset position,
+    bool enableDLNA = false,
+    bool enableDownload = false,
+  }) async {
+    List<PopupMenuItem> menuItems = [];
+    if (enableDLNA) {
+      menuItems.add(const PopupMenuItem(
+        value: 1,
+        child: Text('DLNA投屏'),
+      ));
+    }
+    if (enableDownload) {
+      menuItems.add(const PopupMenuItem(
+        value: 2,
+        child: Text('下载到本地'),
+      ));
+    }
+    menuItems.add(const PopupMenuItem(
+      value: 3,
+      child: Text('复制链接'),
+    ));
+
+    dynamic value = await showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy,
+        0,
+        0,
+      ),
+      items: menuItems,
+      elevation: 8.0,
+    );
+    if (value == null) {
+      return;
+    }
+    if (value == 1) {
+      // 通过DLNA投屏播放
+      showModalBottomSheet(
+        context: context,
+        useSafeArea: true,
+        showDragHandle: true,
+        isScrollControlled: true,
+        builder: (context) {
+          return DraggableScrollableSheet(
+            expand: false,
+            builder: (context, scrollController) {
+              return SingleChildScrollView(
+                controller: scrollController,
+                child: DlnaDevicesWidget(
+                  onDeviceSelected: (device) {
+                    DlnaUtils.play(device, url);
+                  },
+                ),
+              );
+            },
+          );
+        },
+      );
+      return;
+    } else if (value == 2) {
+      // TODO 下载到本地
+      return;
+    } else if (value == 3) {
+      // 复制链接
+      Clipboard.setData(ClipboardData(text: url));
+      SnackUtils.showSnack(
+        context,
+        message: '已复制文件地址',
+        backgroundColor: Theme.of(context).primaryColor,
+      );
+      return;
+    }
   }
 }

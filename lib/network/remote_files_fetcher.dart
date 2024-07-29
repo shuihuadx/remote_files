@@ -35,7 +35,12 @@ class RemoteFilesFetcher {
     for (var anchorTag in anchorTags) {
       final String? href = anchorTag.attributes['href'];
       if (href != null && '../' != href) {
-        String fileName = CodecUtils.urlDecode(href);
+        String fileName;
+        try {
+          fileName = CodecUtils.urlDecode(href);
+        } catch (e) {
+          fileName = href;
+        }
         if (fileName.endsWith('/')) {
           fileName = fileName.substring(0, fileName.length - 1);
         }
