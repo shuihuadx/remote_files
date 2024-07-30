@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/network/remote_files_fetcher.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
@@ -26,6 +27,11 @@ class AddServerPage extends StatefulWidget {
 class _AddServerPageState extends State<AddServerPage> {
   String _serverName = '';
   String _serverUrl = '';
+  final FocusNode keyboardFocusNode = FocusNode();
+  final FocusNode serverUrlFocusNode = FocusNode();
+  final FocusNode remarkFocusNode = FocusNode();
+
+  int focusedIndex = -1;
 
   @override
   Widget build(BuildContext context) {
@@ -63,99 +69,136 @@ class _AddServerPageState extends State<AddServerPage> {
             );
           }
         },
-        child: Column(
-          children: [
-            const SizedBox(height: 16),
-            _TextEditItem(
-              required: true,
-              title: '服务器地址',
-              value: '',
-              textChange: (value) {
-                String lastServerUrl = _serverUrl;
-                _serverUrl = value.trim();
-                if (lastServerUrl.isEmpty != _serverUrl.isEmpty) {
-                  setState(() {});
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-            _TextEditItem(
-              required: false,
-              title: '备注',
-              value: '',
-              textChange: (value) {
-                _serverName = value;
-              },
-            ),
-            const SizedBox(height: 20),
-            Container(
-              height: 50,
-              margin: const EdgeInsets.only(left: 16, top: 16, right: 16),
-              child: LoadingBtn(
-                key: Key(_serverUrl),
-                color: Theme.of(context).primaryColor,
-                text: '确定',
-                btnStatus: _serverUrl.isEmpty ? BtnStatus.disable : BtnStatus.normal,
-                borderRadius: BorderRadius.circular(4),
-                onTap: () async {
-                  // 验证是否能访问
-                  try {
-                    await remoteFilesFetcher.fetchRemoteFiles(_serverUrl);
-                  } catch (e) {
-                    // 文件服务器无法访问时, 检查网络是否正常
-                    bool isNetworkOk = false;
-                    Object? reason;
-                    try {
-                      isNetworkOk = await remoteFilesFetcher.checkNetwork();
-                    } catch (e2) {
-                      reason = e2;
-                    }
-                    if (mounted) {
-                      if (isNetworkOk) {
-                        SnackUtils.showSnack(
-                          context,
-                          message: '无法连接到文件服务器,请检查地址是否正确!reason is $e',
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 2),
-                        );
-                      } else {
-                        SnackUtils.showSnack(
-                          context,
-                          message: '无法访问网络,请检查网络是否正常!reason is $reason',
-                          backgroundColor: Colors.red,
-                          duration: const Duration(seconds: 2),
-                        );
-                      }
-                    }
-                    return;
-                  }
-                  Configs configs = Configs.getInstanceSync();
-                  RemoteServer serverName = RemoteServer();
-                  serverName.serverUrl = _serverUrl;
-                  if (_serverName.isEmpty) {
-                    serverName.serverName = UrlUtils.getUrlLastPath(_serverUrl);
-                  } else {
-                    serverName.serverName = _serverName;
-                  }
-                  configs.remoteServers.add(serverName);
-                  if (configs.remoteServers.length == 1) {
-                    configs.currentServerUrl = serverName.serverUrl;
-                  }
-                  await configs.save();
-                  if (context.mounted) {
-                    if (configs.remoteServers.length == 1) {
-                      Navigator.of(context).pushNamed(
-                        RemoteFilesPage.routeName,
-                        arguments: configs.currentServerUrl,
-                      );
-                    } else {
-                      Navigator.of(context).pop(true);
-                    }
+        child: KeyboardListener(
+          focusNode: keyboardFocusNode,
+          onKeyEvent: (keyEvent) {
+            if (keyEvent.physicalKey == PhysicalKeyboardKey.arrowDown) {
+              if (focusedIndex < 0) {
+                focusedIndex = 0;
+                serverUrlFocusNode.requestFocus();
+              } else if (focusedIndex == 0) {
+                focusedIndex = 1;
+                remarkFocusNode.requestFocus();
+              } else if (focusedIndex == 1) {
+                remarkFocusNode.unfocus();
+                setState(() {
+                  focusedIndex = 2;
+                });
+              }
+            } else if (keyEvent.physicalKey == PhysicalKeyboardKey.arrowUp) {
+              if (focusedIndex == 2) {
+                remarkFocusNode.requestFocus();
+                setState(() {
+                  focusedIndex = 1;
+                });
+              } else if (focusedIndex == 1) {
+                focusedIndex = 0;
+                serverUrlFocusNode.requestFocus();
+              }
+            } else if (keyEvent.physicalKey == PhysicalKeyboardKey.select) {
+              if (focusedIndex == 2) {
+                print("ontap");
+              }
+            }
+            print(keyEvent);
+          },
+          child: Column(
+            children: [
+              const SizedBox(height: 16),
+              _TextEditItem(
+                required: true,
+                title: '服务器地址',
+                value: '',
+                focusNode: serverUrlFocusNode,
+                textChange: (value) {
+                  String lastServerUrl = _serverUrl;
+                  _serverUrl = value.trim();
+                  if (lastServerUrl.isEmpty != _serverUrl.isEmpty) {
+                    setState(() {});
                   }
                 },
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              _TextEditItem(
+                required: false,
+                title: '备注',
+                value: '',
+                focusNode: remarkFocusNode,
+                textChange: (value) {
+                  _serverName = value;
+                },
+              ),
+              const SizedBox(height: 20),
+              Container(
+                height: 50,
+                margin: const EdgeInsets.only(left: 16, top: 16, right: 16),
+                child: LoadingBtn(
+                  key: Key(_serverUrl),
+                  color: Theme.of(context).primaryColor,
+                  text: '确定',
+                  btnStatus: _serverUrl.isEmpty ? BtnStatus.disable : BtnStatus.normal,
+                  isFocused: focusedIndex == 2,
+                  borderRadius: BorderRadius.circular(4),
+                  onTap: () async {
+                    // 验证是否能访问
+                    try {
+                      await remoteFilesFetcher.fetchRemoteFiles(_serverUrl);
+                    } catch (e) {
+                      // 文件服务器无法访问时, 检查网络是否正常
+                      bool isNetworkOk = false;
+                      Object? reason;
+                      try {
+                        isNetworkOk = await remoteFilesFetcher.checkNetwork();
+                      } catch (e2) {
+                        reason = e2;
+                      }
+                      if (mounted) {
+                        if (isNetworkOk) {
+                          SnackUtils.showSnack(
+                            context,
+                            message: '无法连接到文件服务器,请检查地址是否正确!reason is $e',
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 2),
+                          );
+                        } else {
+                          SnackUtils.showSnack(
+                            context,
+                            message: '无法访问网络,请检查网络是否正常!reason is $reason',
+                            backgroundColor: Colors.red,
+                            duration: const Duration(seconds: 2),
+                          );
+                        }
+                      }
+                      return;
+                    }
+                    Configs configs = Configs.getInstanceSync();
+                    RemoteServer serverName = RemoteServer();
+                    serverName.serverUrl = _serverUrl;
+                    if (_serverName.isEmpty) {
+                      serverName.serverName = UrlUtils.getUrlLastPath(_serverUrl);
+                    } else {
+                      serverName.serverName = _serverName;
+                    }
+                    configs.remoteServers.add(serverName);
+                    if (configs.remoteServers.length == 1) {
+                      configs.currentServerUrl = serverName.serverUrl;
+                    }
+                    await configs.save();
+                    if (context.mounted) {
+                      if (configs.remoteServers.length == 1) {
+                        Navigator.of(context).pushNamed(
+                          RemoteFilesPage.routeName,
+                          arguments: configs.currentServerUrl,
+                        );
+                      } else {
+                        Navigator.of(context).pop(true);
+                      }
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -172,6 +215,7 @@ class _TextEditItem extends StatefulWidget {
   final bool required;
   final String title;
   final String value;
+  final FocusNode? focusNode;
   final _TextChangeListener textChange;
 
   const _TextEditItem({
@@ -179,6 +223,7 @@ class _TextEditItem extends StatefulWidget {
     required this.required,
     required this.title,
     required this.value,
+    this.focusNode,
     required this.textChange,
   }) : super(key: key);
 
@@ -188,7 +233,7 @@ class _TextEditItem extends StatefulWidget {
 
 class __TextEditItemState extends State<_TextEditItem> {
   final TextEditingController _textEditingController = TextEditingController();
-  FocusNode _focusNode = FocusNode();
+  late FocusNode _focusNode;
 
   bool _isTextEmpty = true;
   bool _hasFocus = false;
@@ -209,7 +254,7 @@ class __TextEditItemState extends State<_TextEditItem> {
     _isTextEmpty = widget.value.isEmpty;
     _textEditingController.text = widget.value;
     _currentText = widget.value;
-    _focusNode = FocusNode();
+    _focusNode = widget.focusNode ?? FocusNode();
     _focusNode.addListener(() {
       if (_hasFocus != _focusNode.hasFocus) {
         setState(() {
@@ -264,7 +309,7 @@ class __TextEditItemState extends State<_TextEditItem> {
                     color: Colors.grey,
                   ),
                 ),
-        ), //textField样式设置
+        ),
       ),
     );
   }

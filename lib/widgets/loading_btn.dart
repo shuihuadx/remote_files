@@ -19,6 +19,7 @@ class LoadingBtn extends StatefulWidget {
   final BorderRadiusGeometry? borderRadius;
   final TapCallback? onTap;
   final BtnStatus btnStatus;
+  final bool isFocused;
 
   const LoadingBtn({
     Key? key,
@@ -29,6 +30,7 @@ class LoadingBtn extends StatefulWidget {
     this.borderRadius,
     this.onTap,
     this.btnStatus = BtnStatus.normal,
+    this.isFocused = false,
   }) : super(key: key);
 
   @override
@@ -82,6 +84,13 @@ class _LoadingBtnState extends State<LoadingBtn> {
         decoration: BoxDecoration(
           color: widget.color,
           borderRadius: widget.borderRadius ?? BorderRadius.circular(2),
+          border: widget.isFocused
+          // border: true
+              ? Border.all(
+                  color: Colors.blue,
+                  width: 5,
+                )
+              : null,
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
