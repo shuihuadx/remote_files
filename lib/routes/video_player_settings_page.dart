@@ -59,10 +59,8 @@ class _VideoPlayerSettingsPageState extends State<VideoPlayerSettingsPage> {
             margin: const EdgeInsets.only(left: 16, top: 16, right: 16),
             child: LoadingBtn(
               key: Key(videoPlayerPath),
-              color: Theme.of(context).primaryColor,
               text: '确定',
               btnStatus: videoPlayerPath.isEmpty ? BtnStatus.disable : BtnStatus.normal,
-              borderRadius: BorderRadius.circular(4),
               onTap: () async {
                 bool isOk = false;
                 try {

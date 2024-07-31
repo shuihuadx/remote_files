@@ -47,10 +47,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
       return Configs.getInstanceSync()
           .remoteServers
           .firstWhere(
-            (remoteServer) =>
-        Configs.getInstanceSync().currentServerUrl ==
-            remoteServer.serverUrl,
-      )
+            (remoteServer) => Configs.getInstanceSync().currentServerUrl == remoteServer.serverUrl,
+          )
           .serverName;
     } else {
       return UrlUtils.getUrlLastPath(CodecUtils.urlDecode(url));
@@ -77,23 +75,23 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
           builder: (BuildContext context) {
             return isRootUrl
                 ? IconButton(
-              icon: const Icon(
-                Icons.menu,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                Scaffold.of(context).openDrawer();
-              },
-            )
+                    icon: const Icon(
+                      Icons.menu,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                  )
                 : IconButton(
-              icon: const Icon(
-                Icons.arrow_back,
-                color: Colors.white,
-              ),
-              onPressed: () {
-                Navigator.of(context).pop(false);
-              },
-            );
+                    icon: const Icon(
+                      Icons.arrow_back,
+                      color: Colors.white,
+                    ),
+                    onPressed: () {
+                      Navigator.of(context).pop(false);
+                    },
+                  );
           },
         ),
         systemOverlayStyle: AppTheme.systemOverlayStyle,
@@ -120,16 +118,15 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                 ),
                 Platform.isWindows
                     ? ListTile(
-                  title: const Text('视频播放器设置'),
-                  onTap: () {
-                    // 视频播放器设置
-                    if (mounted) {
-                      Navigator.of(context)
-                          .pushNamed(VideoPlayerSettingsPage.routeName);
-                    }
-                    return;
-                  },
-                )
+                        title: const Text('视频播放器设置'),
+                        onTap: () {
+                          // 视频播放器设置
+                          if (mounted) {
+                            Navigator.of(context).pushNamed(VideoPlayerSettingsPage.routeName);
+                          }
+                          return;
+                        },
+                      )
                     : const SizedBox(),
                 ListTile(
                   title: const Text('服务器管理'),
@@ -139,18 +136,13 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       // Close the drawer
                       Scaffold.of(context).closeDrawer();
 
-                      var oldCurrentServerUrl =
-                          Configs.getInstanceSync().currentServerUrl;
-                      Navigator.of(context)
-                          .pushNamed(ServerListPage.routeName)
-                          .then((value) {
-                        var currentServerUrl =
-                            Configs.getInstanceSync().currentServerUrl;
+                      var oldCurrentServerUrl = Configs.getInstanceSync().currentServerUrl;
+                      Navigator.of(context).pushNamed(ServerListPage.routeName).then((value) {
+                        var currentServerUrl = Configs.getInstanceSync().currentServerUrl;
                         if (oldCurrentServerUrl != currentServerUrl) {
                           setState(() {
                             _futureBuilderKey = GlobalKey();
-                            _future = remoteFilesFetcher
-                                .fetchRemoteFiles(currentServerUrl);
+                            _future = remoteFilesFetcher.fetchRemoteFiles(currentServerUrl);
                             isRootUrl = true;
                             title = getPageTitle(isRootUrl);
                           });
@@ -167,16 +159,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       // Close the drawer
                       Scaffold.of(context).closeDrawer();
 
-                      Navigator.of(context)
-                          .pushNamed(ThemeColorSettingsPage.routeName);
+                      Navigator.of(context).pushNamed(ThemeColorSettingsPage.routeName);
                     }
                   },
                 ),
-                // ListTile(
-                //   title: const Text('测试'),
-                //   onTap: () {
-                //   },
-                // ),
               ],
             );
           },
@@ -209,12 +195,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
             itemCount: remoteFilesInfo.remoteFiles.length,
             itemBuilder: (BuildContext context, int index) {
               RemoteFile remoteFile = remoteFilesInfo.remoteFiles[index];
-              return GestureDetector(
-                child: FileItem(
-                  fileName: remoteFile.fileName,
-                  url: remoteFile.url,
-                  isDir: remoteFile.isDir,
-                ),
+              return InkWell(
+                focusColor: Theme.of(context).colorScheme.primaryContainer,
                 onTap: () async {
                   if (remoteFile.isDir) {
                     Navigator.of(context).pushNamed(
@@ -222,13 +204,11 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       arguments: remoteFile.url,
                     );
                   } else {
-                    if (Platform.isWindows &&
-                        FileUtils.isVideoFile(remoteFile.fileName)) {
+                    if (Platform.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
                       Configs configs = Configs.getInstanceSync();
                       String videoPlayerPath = configs.videoPlayerPath;
                       if (videoPlayerPath.isEmpty) {
-                        videoPlayerPath =
-                        'C:/Program Files/Windows Media Player/wmplayer.exe';
+                        videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
                       }
                       ProcessHelper.run(
                         videoPlayerPath,
@@ -250,6 +230,11 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     }
                   }
                 },
+                child: FileItem(
+                  fileName: remoteFile.fileName,
+                  url: remoteFile.url,
+                  isDir: remoteFile.isDir,
+                ),
               );
             },
           );
@@ -331,9 +316,8 @@ class FileItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       height: 64.0,
-      color: Colors.white,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.center,

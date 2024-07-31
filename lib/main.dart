@@ -29,38 +29,6 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Shortcuts(
-      shortcuts: <LogicalKeySet, Intent>{
-        LogicalKeySet(LogicalKeyboardKey.select): ActivateIntent(),
-      },
-      child: MaterialApp(
-        navigatorKey: App.navigatorKey,
-        title: 'RemoteFiles',
-        theme: Provider.of<ThemeModel>(context).themeData,
-        routes: {
-          AddServerPage.routeName: (context) => const AddServerPage(enableBack: true),
-          AddServerPage.disableBackRouteName: (context) => const AddServerPage(enableBack: false),
-          ThemeColorSettingsPage.routeName: (context) => const ThemeColorSettingsPage(),
-          VideoPlayerSettingsPage.routeName: (context) => const VideoPlayerSettingsPage(),
-          ServerListPage.routeName: (context) => const ServerListPage(),
-          '/': (context) => const MainPage(),
-        },
-        onGenerateRoute: (RouteSettings settings) {
-          String routeName = settings.name ?? '';
-          if (routeName == RemoteFilesPage.routeName) {
-            return MaterialPageRoute(
-              builder: (context) {
-                return RemoteFilesPage(
-                  url: settings.arguments as String,
-                );
-              },
-              settings: settings,
-            );
-          }
-          return null;
-        },
-      ),
-    );
     return MaterialApp(
       navigatorKey: App.navigatorKey,
       title: 'RemoteFiles',

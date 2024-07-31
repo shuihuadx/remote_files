@@ -153,11 +153,9 @@ class _ServerListPageState extends State<ServerListPage> {
       height: 40,
       margin: const EdgeInsets.only(left: 16, top: 30, right: 16),
       child: LoadingBtn(
-        color: Theme.of(context).primaryColor,
         text: '添加服务器',
         textFontSize: 16,
         btnStatus: BtnStatus.normal,
-        borderRadius: BorderRadius.circular(4),
         onTap: () {
           Navigator.of(context).pushNamed(AddServerPage.routeName).then((value) {
             if (value == true) {
