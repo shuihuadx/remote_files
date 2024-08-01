@@ -51,19 +51,70 @@ class _ServerListPageState extends State<ServerListPage> {
             return addServerButton();
           }
           String serverUrl = remoteServers[index].serverUrl;
-          return Container(
-            padding: const EdgeInsets.only(right: 12),
+          return SizedBox(
             height: 60,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IconButton(
-                  icon: Icon(
-                    Icons.delete,
-                    color: currentServerUrl == serverUrl
-                        ? Theme.of(context).unselectedWidgetColor
-                        : Theme.of(context).primaryColor,
+                Expanded(
+                  child: InkWell(
+                    focusColor: Theme.of(context).colorScheme.primaryContainer,
+                    onTap: () {
+                      if (serverUrl != currentServerUrl) {
+                        Configs configs = Configs.getInstanceSync();
+                        configs.currentServerUrl = serverUrl;
+                        setState(() {
+                          currentServerUrl = serverUrl;
+                        });
+                        configs.save();
+                      }
+                    },
+                    child: Row(
+                      children: [
+                        const SizedBox(width: 12),
+                        currentServerUrl == remoteServers[index].serverUrl
+                            ? Icon(
+                          Icons.check,
+                          color: Theme.of(context).primaryColor,
+                          size: 24,
+                        )
+                            : const SizedBox(width: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Container(
+                            color: Colors.transparent,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: <Widget>[
+                                Text(
+                                  remoteServers[index].serverName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xff333333),
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  serverUrl,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Color(0xff999999),
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
+                ),
+                IconButton(
                   onPressed: () {
                     if (currentServerUrl == serverUrl) {
                       SnackUtils.showSnack(
@@ -81,57 +132,13 @@ class _ServerListPageState extends State<ServerListPage> {
                       configs.save();
                     }
                   },
-                ),
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      if (serverUrl != currentServerUrl) {
-                        Configs configs = Configs.getInstanceSync();
-                        configs.currentServerUrl = serverUrl;
-                        setState(() {
-                          currentServerUrl = serverUrl;
-                        });
-                        configs.save();
-                      }
-                    },
-                    child: Container(
-                      color: Colors.transparent,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: <Widget>[
-                          Text(
-                            remoteServers[index].serverName,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xff333333),
-                              fontSize: 16,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            serverUrl,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xff999999),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  icon: Icon(
+                    Icons.delete,
+                    color: currentServerUrl == serverUrl
+                        ? Theme.of(context).unselectedWidgetColor
+                        : Theme.of(context).primaryColor,
                   ),
                 ),
-                const SizedBox(width: 12),
-                currentServerUrl == remoteServers[index].serverUrl
-                    ? Icon(
-                        Icons.check,
-                        color: Theme.of(context).primaryColor,
-                        size: 24,
-                      )
-                    : const SizedBox(),
               ],
             ),
           );
