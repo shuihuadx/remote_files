@@ -34,10 +34,20 @@ class RemoteFilesPage extends StatefulWidget {
   State<RemoteFilesPage> createState() => _RemoteFilesPageState();
 }
 
+enum _Status {
+  loading,
+  error,
+  success,
+}
+
 class _RemoteFilesPageState extends State<RemoteFilesPage> {
-  /// setState时重新给_futureBuilderKey赋值,以重新刷新 FutureBuilder
-  GlobalKey _futureBuilderKey = GlobalKey();
-  late Future<RemoteFilesInfo> _future;
+  _Status _status = _Status.loading;
+  String _errorReason = '';
+  RemoteFilesInfo remoteFilesInfo = RemoteFilesInfo(
+    title: 'default',
+    remoteFiles: [],
+    htmlResponse: '',
+  );
   late String url;
   bool isRootUrl = false;
   late String title;
@@ -55,14 +65,49 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     }
   }
 
+  void setLoadUrl(String url) {
+    this.url = url;
+
+    // 本地缓存
+    remoteFilesFetcher.fetchCachedRemoteFiles(url).then((RemoteFilesInfo? value) {
+      if (mounted && value != null && _status != _Status.success) {
+        setState(() {
+          remoteFilesInfo = value;
+          _status = _Status.success;
+        });
+      }
+    });
+
+    // 远端数据
+    remoteFilesFetcher.fetchRemoteFiles(url).then((RemoteFilesInfo value) {
+      if (mounted) {
+        if (_status != _Status.success || remoteFilesInfo.htmlResponse != value.htmlResponse) {
+          setState(() {
+            remoteFilesInfo = value;
+            _status = _Status.success;
+          });
+        }
+      }
+    }).onError((error, stackTrace) {
+      // 本地缓存没有数据, 且网络请求失败的情况, 触发 snapshot.hasError 条件
+      if (mounted && _status != _Status.success) {
+        setState(() {
+          _errorReason = error.toString();
+          _status = _Status.error;
+        });
+      }
+    });
+  }
+
   @override
   void initState() {
     DlnaUtils.startSearch();
 
     url = widget.url;
-    isRootUrl = Configs.getInstanceSync().currentServerUrl == url;
+    isRootUrl = Configs.getInstanceSync().currentServerUrl == widget.url;
     title = getPageTitle(isRootUrl);
-    _future = remoteFilesFetcher.fetchRemoteFiles(url);
+
+    setLoadUrl(widget.url);
     super.initState();
   }
 
@@ -141,8 +186,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                         var currentServerUrl = Configs.getInstanceSync().currentServerUrl;
                         if (oldCurrentServerUrl != currentServerUrl) {
                           setState(() {
-                            _futureBuilderKey = GlobalKey();
-                            _future = remoteFilesFetcher.fetchRemoteFiles(currentServerUrl);
+                            setLoadUrl(currentServerUrl);
                             isRootUrl = true;
                             title = getPageTitle(isRootUrl);
                           });
@@ -185,77 +229,69 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
   }
 
   Widget remoteFilesList() {
-    return FutureBuilder(
-      key: _futureBuilderKey,
-      future: _future,
-      builder: (BuildContext context, AsyncSnapshot<dynamic> snapshot) {
-        if (snapshot.hasData) {
-          RemoteFilesInfo remoteFilesInfo = snapshot.data as RemoteFilesInfo;
-          return ListView.builder(
-            itemCount: remoteFilesInfo.remoteFiles.length,
-            itemBuilder: (BuildContext context, int index) {
-              RemoteFile remoteFile = remoteFilesInfo.remoteFiles[index];
-              return InkWell(
-                focusColor: Theme.of(context).colorScheme.primaryContainer,
-                onTap: () async {
-                  if (remoteFile.isDir) {
-                    Navigator.of(context).pushNamed(
-                      RemoteFilesPage.routeName,
-                      arguments: remoteFile.url,
-                    );
-                  } else {
-                    if (Platform.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
-                      Configs configs = Configs.getInstanceSync();
-                      String videoPlayerPath = configs.videoPlayerPath;
-                      if (videoPlayerPath.isEmpty) {
-                        videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
-                      }
-                      ProcessHelper.run(
-                        videoPlayerPath,
-                        args: [remoteFile.url],
+    if (_status == _Status.error) {
+      return ReloadingView(
+        errorReason: _errorReason,
+        onPressed: () {
+          setState(() {
+            setLoadUrl(url);
+          });
+        },
+      );
+    } else if (_status == _Status.loading) {
+      return const LoadingWidget(
+        width: 100,
+        height: 100,
+      );
+    } else {
+      return ListView.builder(
+        itemCount: remoteFilesInfo.remoteFiles.length,
+        itemBuilder: (BuildContext context, int index) {
+          RemoteFile remoteFile = remoteFilesInfo.remoteFiles[index];
+          return InkWell(
+            focusColor: Theme.of(context).colorScheme.primaryContainer,
+            onTap: () async {
+              if (remoteFile.isDir) {
+                Navigator.of(context).pushNamed(
+                  RemoteFilesPage.routeName,
+                  arguments: remoteFile.url,
+                );
+              } else {
+                if (Platform.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
+                  Configs configs = Configs.getInstanceSync();
+                  String videoPlayerPath = configs.videoPlayerPath;
+                  if (videoPlayerPath.isEmpty) {
+                    videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
+                  }
+                  ProcessHelper.run(
+                    videoPlayerPath,
+                    args: [remoteFile.url],
+                  );
+                } else if (Platform.isAndroid) {
+                  RemoteFileMethodChannel.launchRemoteFile(remoteFile);
+                } else {
+                  if (!await launchUrl(Uri.parse(remoteFile.url))) {
+                    if (mounted) {
+                      SnackUtils.showSnack(
+                        context,
+                        message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 2),
                       );
-                    } else if (Platform.isAndroid) {
-                      RemoteFileMethodChannel.launchRemoteFile(remoteFile);
-                    } else {
-                      if (!await launchUrl(Uri.parse(remoteFile.url))) {
-                        if (mounted) {
-                          SnackUtils.showSnack(
-                            context,
-                            message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
-                            backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 2),
-                          );
-                        }
-                      }
                     }
                   }
-                },
-                child: FileItem(
-                  fileName: remoteFile.fileName,
-                  url: remoteFile.url,
-                  isDir: remoteFile.isDir,
-                ),
-              );
+                }
+              }
             },
+            child: FileItem(
+              fileName: remoteFile.fileName,
+              url: remoteFile.url,
+              isDir: remoteFile.isDir,
+            ),
           );
-        } else if (snapshot.hasError) {
-          return ReloadingView(
-            errorReason: snapshot.error.toString(),
-            onPressed: () {
-              setState(() {
-                _futureBuilderKey = GlobalKey();
-                _future = remoteFilesFetcher.fetchRemoteFiles(url);
-              });
-            },
-          );
-        } else {
-          return const LoadingWidget(
-            width: 100,
-            height: 100,
-          );
-        }
-      },
-    );
+        },
+      );
+    }
   }
 }
 
