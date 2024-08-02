@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:remote_files/data/configs.dart';
+import 'package:remote_files/data/db/http_disk_cache.dart';
 import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/snack_utils.dart';
@@ -74,10 +75,10 @@ class _ServerListPageState extends State<ServerListPage> {
                         const SizedBox(width: 12),
                         currentServerUrl == remoteServers[index].serverUrl
                             ? Icon(
-                          Icons.check,
-                          color: Theme.of(context).primaryColor,
-                          size: 24,
-                        )
+                                Icons.check,
+                                color: Theme.of(context).primaryColor,
+                                size: 24,
+                              )
                             : const SizedBox(width: 24),
                         const SizedBox(width: 12),
                         Expanded(
@@ -123,6 +124,8 @@ class _ServerListPageState extends State<ServerListPage> {
                         backgroundColor: Theme.of(context).primaryColor,
                       );
                     } else {
+                      HttpDiskCache.instance.deleteServer(serverUrl);
+
                       Configs configs = Configs.getInstanceSync();
                       configs.remoteServers.removeAt(index);
                       setState(() {
