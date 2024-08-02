@@ -48,6 +48,7 @@ dependencies:
   sqflite: ^2.3.3
   sqflite_common_ffi: ^2.3.3
   sqflite_common_ffi_web: ^0.4.4
+  worker_manager: ^7.0.3
 
 dev_dependencies:
   flutter_test:
