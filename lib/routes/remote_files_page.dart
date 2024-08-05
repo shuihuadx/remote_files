@@ -51,6 +51,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
   late String url;
   bool isRootUrl = false;
   late String title;
+  int lastClickBackTimestamp = 0;
 
   String getPageTitle(bool isRootUrl) {
     if (isRootUrl) {
@@ -238,12 +239,19 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
       body: PopScope(
         canPop: !isRootUrl,
         onPopInvoked: (didPop) {
-          if (isRootUrl) {
-            SnackUtils.showSnack(
-              context,
-              message: '没有上一页了',
-              backgroundColor: Theme.of(context).primaryColor,
-            );
+          if (!didPop) {
+            int timestamp = DateTime.now().millisecondsSinceEpoch;
+            if (timestamp - lastClickBackTimestamp < 1000) {
+              // 1秒内按两次返回将会, 退出App(此方法仅适用于Android, 也只有 Android 有此需求)
+              SystemNavigator.pop();
+            } else {
+              lastClickBackTimestamp = timestamp;
+              SnackUtils.showSnack(
+                context,
+                message: '没有上一页了，再次返回将退出应用',
+                backgroundColor: Theme.of(context).primaryColor,
+              );
+            }
           }
         },
         child: remoteFilesList(),
