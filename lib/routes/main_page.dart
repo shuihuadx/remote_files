@@ -6,6 +6,11 @@ import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/isolate_executor.dart';
 import 'package:remote_files/widgets/loading_widget.dart';
 
+const String defaultServerUrl = 'https://ipv6.agiao.baby:4433/xunlei/';
+final RemoteServer defaultRemoteServer = RemoteServer()
+  ..serverUrl = defaultServerUrl
+  ..serverName = 'xunlei';
+
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
@@ -18,6 +23,12 @@ class _MainPageState extends State<MainPage> {
     await isolateExecutor.init();
 
     Configs configs = await Configs.getInstance();
+    // 当 App 没有数据时, 使用默认服务器
+    if (configs.remoteServers.isEmpty) {
+      configs.remoteServers.add(defaultRemoteServer);
+      configs.currentServerUrl = defaultServerUrl;
+      await configs.save();
+    }
     AppTheme.themeModel.setThemeData(AppTheme.createThemeDataByColor(Color(configs.themeColor)));
 
     if (mounted) {
