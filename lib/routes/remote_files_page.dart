@@ -65,18 +65,27 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     }
   }
 
-  void setLoadUrl(String url) {
+  void setLoadUrl(
+    String url, {
+    bool enableCache = true,
+  }) {
     this.url = url;
+    _status = _Status.loading;
+    if (mounted) {
+      setState(() {});
+    }
 
-    // 本地缓存
-    remoteFilesFetcher.fetchCachedRemoteFiles(url).then((RemoteFilesInfo? value) {
-      if (mounted && value != null && _status != _Status.success) {
-        setState(() {
-          remoteFilesInfo = value;
-          _status = _Status.success;
-        });
-      }
-    });
+    if (enableCache) {
+      // 本地缓存
+      remoteFilesFetcher.fetchCachedRemoteFiles(url).then((RemoteFilesInfo? value) {
+        if (mounted && value != null && _status != _Status.success) {
+          setState(() {
+            remoteFilesInfo = value;
+            _status = _Status.success;
+          });
+        }
+      });
+    }
 
     // 远端数据
     remoteFilesFetcher.fetchRemoteFiles(url).then((RemoteFilesInfo value) {
@@ -139,6 +148,20 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                   );
           },
         ),
+        actions: [
+          Visibility(
+            visible: _status != _Status.loading,
+            child: IconButton(
+              icon: const Icon(
+                Icons.refresh,
+                color: Colors.white,
+              ),
+              onPressed: () {
+                setLoadUrl(url, enableCache: false);
+              },
+            ),
+          )
+        ],
         systemOverlayStyle: AppTheme.systemOverlayStyle,
         title: Text(
           title,
