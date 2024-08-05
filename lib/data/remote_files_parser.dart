@@ -1,23 +1,39 @@
+import 'dart:async';
+
 import 'package:html/parser.dart' as html_parser;
 import 'package:remote_files/entities/remote_file.dart';
 import 'package:remote_files/utils/codec_utils.dart';
 import 'package:remote_files/utils/isolate_executor.dart';
-import 'package:worker_manager/worker_manager.dart';
+import 'package:remote_files/utils/lru_cache.dart';
 
 class RemoteFilesParser {
+  /// 缓存解析结果, 方便复用(key:url, value:RemoteFilesInfo)
+  static final LruCache<String, RemoteFilesInfo> _parseCache = LruCache(20);
+
   static String _shortFileName(String fileName) {
     String result = fileName.replaceAll(RegExp(r'【.*?】'), '');
     return result;
   }
 
-  static Cancelable<RemoteFilesInfo> parse({
+  static FutureOr<RemoteFilesInfo> parse({
     required String url,
     required String html,
-  }) {
-    return isolateExecutor.execute(parseImpl, <String, String>{
-      'url': url,
-      'html': html,
-    });
+  }) async {
+    // 尝试使用缓存
+    RemoteFilesInfo? cache = _parseCache.get(url);
+    if (cache != null && html == cache.htmlResponse) {
+      return cache;
+    } else {
+      RemoteFilesInfo remoteFilesInfo = await isolateExecutor.execute(
+        parseImpl,
+        <String, String>{
+          'url': url,
+          'html': html,
+        },
+      );
+      _parseCache.set(url, remoteFilesInfo);
+      return remoteFilesInfo;
+    }
   }
 
   static RemoteFilesInfo parseImpl(Map<String, String> arg) {

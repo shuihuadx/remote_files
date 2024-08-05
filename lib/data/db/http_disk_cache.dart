@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:remote_files/utils/lru_cache.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
@@ -57,7 +58,7 @@ class HttpDiskCacheImpl extends HttpDiskCache {
   static const String databaseName = 'remote_files.db';
   static const String tableName = 'http_disk_cache';
   static const int databaseVersion = 1;
-  final Map<String, String> _memoryCache = {};
+  static final LruCache<String, String> _memoryCache = LruCache(20);
   Database? _db;
 
   HttpDiskCacheImpl._();
@@ -182,11 +183,11 @@ class HttpDiskCacheImpl extends HttpDiskCache {
     required String url,
     required String httpResponse,
   }) async {
-    String? responseCache = _memoryCache[url];
+    String? responseCache = _memoryCache.get(url);
     if (httpResponse == responseCache) {
       return;
     } else {
-      _memoryCache[url] = httpResponse;
+      _memoryCache.set(url, httpResponse);
       HttpDiskCacheItem? item = await _query(rootUrl: rootUrl, url: url);
       if (item == null) {
         await _insert(rootUrl: rootUrl, url: url, httpResponse: httpResponse);
@@ -201,26 +202,20 @@ class HttpDiskCacheImpl extends HttpDiskCache {
     required String rootUrl,
     required String url,
   }) async {
-    String? responseCache = _memoryCache[url];
+    String? responseCache = _memoryCache.get(url);
     if (responseCache != null) {
       return responseCache;
     }
     HttpDiskCacheItem? item = await _query(rootUrl: rootUrl, url: url);
     if (item != null) {
-      _memoryCache[url] = item.httpResponse;
+      _memoryCache.set(url, item.httpResponse);
       return item.httpResponse;
     }
     return null;
   }
 
   @override
-  Future<void> deleteServer(String rootUrl) async {
-    List<String> keys = _memoryCache.keys.toList(growable: false);
-    for (String key in keys) {
-      if (key.startsWith(rootUrl)) {
-        _memoryCache.remove(key);
-      }
-    }
-    await _delete(rootUrl: rootUrl);
+  Future<void> deleteServer(String rootUrl) {
+    return _delete(rootUrl: rootUrl);
   }
 }
