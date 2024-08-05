@@ -74,8 +74,6 @@ class _ThemeColorSettingsPageState extends State<ThemeColorSettingsPage> {
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 6, //每行6列
                 childAspectRatio: 1.0, //显示区域宽高相等
-                mainAxisSpacing: 4.0, // 设置主轴方向的间距
-                crossAxisSpacing: 4.0, // 设置交叉轴方向的间距
               ),
               itemBuilder: (context, index) {
                 return ElevatedButton(
