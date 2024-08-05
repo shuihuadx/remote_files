@@ -3,6 +3,7 @@ import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
+import 'package:remote_files/utils/isolate_executor.dart';
 import 'package:remote_files/widgets/loading_widget.dart';
 
 class MainPage extends StatefulWidget {
@@ -13,12 +14,13 @@ class MainPage extends StatefulWidget {
 }
 
 class _MainPageState extends State<MainPage> {
-  @override
-  void initState() {
-    Configs.getInstance().then((configs) {
-      AppTheme.themeModel.setThemeData(ThemeData(
-        primarySwatch: AppTheme.createMaterialColor(Color(configs.themeColor)),
-      ));
+  Future<void> _init() async {
+    await isolateExecutor.init();
+
+    Configs configs = await Configs.getInstance();
+    AppTheme.themeModel.setThemeData(AppTheme.createThemeDataByColor(Color(configs.themeColor)));
+
+    if (mounted) {
       if (configs.remoteServers.isEmpty) {
         // 还没有服务器配置信息, 跳转到添加服务器页面
         Navigator.of(context).pushNamed(AddServerPage.disableBackRouteName);
@@ -29,10 +31,13 @@ class _MainPageState extends State<MainPage> {
           arguments: configs.currentServerUrl,
         );
       }
-      if (mounted) {
-        setState(() {});
-      }
-    });
+      setState(() {});
+    }
+  }
+
+  @override
+  void initState() {
+    _init();
     super.initState();
   }
 

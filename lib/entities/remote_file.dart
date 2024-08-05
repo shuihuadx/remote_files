@@ -1,10 +1,12 @@
 class RemoteFilesInfo {
   String title = '';
   List<RemoteFile> remoteFiles = [];
+  String htmlResponse = '';
 
   RemoteFilesInfo({
     required this.title,
     required this.remoteFiles,
+    required this.htmlResponse,
   });
 }
 

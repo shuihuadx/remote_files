@@ -32,4 +32,28 @@ class AppTheme {
 
     return MaterialColor(color.value, swatch);
   }
+
+  static ThemeData createThemeDataByColor(Color color){
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: color,
+        brightness: Brightness.light,
+      ),
+      progressIndicatorTheme: ProgressIndicatorThemeData(
+        color: color,
+      ),
+      dialogTheme: DialogTheme(
+        // actionsPadding: EdgeInsets.all(0),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(4),
+        ),
+      ),
+      dividerTheme: const DividerThemeData(
+        color: Color(0xFFE9E9E9),
+      ),
+      primarySwatch: createMaterialColor(color),
+    );
+  }
 }

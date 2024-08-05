@@ -1,112 +1,108 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 enum BtnStatus {
   normal,
-  tapDown,
   loading,
   disable,
 }
 
-typedef TapCallback = Future<void> Function();
+typedef TapCallback = FutureOr<void> Function();
 
 class LoadingBtn extends StatefulWidget {
-  final Color color;
   final String? text;
+  final double? textFontSize;
   final String? loadingText;
-  final BorderRadiusGeometry? borderRadius;
   final TapCallback? onTap;
   final BtnStatus btnStatus;
+  final FocusNode? focusNode;
 
   const LoadingBtn({
     Key? key,
-    required this.color,
     this.text,
+    this.textFontSize = 18,
     this.loadingText,
-    this.borderRadius,
     this.onTap,
     this.btnStatus = BtnStatus.normal,
+    this.focusNode,
   }) : super(key: key);
 
   @override
-  _LoadingBtnState createState() => _LoadingBtnState();
+  State<LoadingBtn> createState() => _LoadingBtnState();
 }
 
 class _LoadingBtnState extends State<LoadingBtn> {
-  BtnStatus _btnStatus = BtnStatus.normal;
+  BtnStatus btnStatus = BtnStatus.normal;
+  late FocusNode focusNode;
+  bool hasFocus = false;
 
   @override
   void initState() {
-    _btnStatus = widget.btnStatus;
+    btnStatus = widget.btnStatus;
+    focusNode = widget.focusNode ?? FocusNode();
     super.initState();
   }
 
   @override
   Widget build(BuildContext context) {
-    String? text = _btnStatus == BtnStatus.loading
+    String? text = btnStatus == BtnStatus.loading
         ? ((widget.loadingText?.isEmpty ?? true) ? widget.text : widget.loadingText)
         : widget.text;
-    return GestureDetector(
-      onTapDown: (TapDownDetails details) {
-        if (_btnStatus == BtnStatus.normal) {
-          _btnStatus = BtnStatus.tapDown;
-          setState(() {});
-        }
+    return FilledButton(
+      focusNode: focusNode,
+      style: ButtonStyle(
+        elevation: WidgetStateProperty.all(hasFocus ? 10 : 0),
+      ),
+      onFocusChange: (value) {
+        setState(() {
+          hasFocus = value;
+        });
       },
-      onTapCancel: () {
-        if (_btnStatus == BtnStatus.tapDown) {
-          _btnStatus = BtnStatus.normal;
-          setState(() {});
+      onPressed: () async {
+        if (btnStatus == BtnStatus.disable || btnStatus == BtnStatus.loading) {
+          return;
         }
-      },
-      onTapUp: (TapUpDetails details) async {
-        if (_btnStatus == BtnStatus.tapDown) {
-          _btnStatus = BtnStatus.loading;
-          setState(() {});
-
-          TapCallback? onTap = widget.onTap;
-          if (onTap != null) {
-            await onTap();
-          }
-
-          _btnStatus = BtnStatus.normal;
+        TapCallback? onTap = widget.onTap;
+        if (onTap != null) {
+          setState(() {
+            btnStatus = BtnStatus.loading;
+          });
+          await onTap();
           if (mounted) {
-            setState(() {});
+            setState(() {
+              btnStatus = BtnStatus.normal;
+            });
           }
         }
       },
-      child: Container(
-        decoration: BoxDecoration(
-          color: widget.color,
-          borderRadius: widget.borderRadius ?? BorderRadius.circular(2),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _btnStatus == BtnStatus.loading
-                ? Container(
-                    margin: const EdgeInsets.only(right: 16),
-                    child: const SizedBox(
-                      height: 17,
-                      width: 17,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        backgroundColor: Color.fromARGB(77, 255, 255, 255),
-                        valueColor: AlwaysStoppedAnimation(Colors.white),
-                      ),
-                    ),
-                  )
-                : Container(),
-            Text(
-              text ?? '',
-              style: TextStyle(
-                color: _btnStatus == BtnStatus.normal || _btnStatus == BtnStatus.loading
-                    ? Colors.white
-                    : const Color.fromARGB(102, 255, 255, 255),
-                fontSize: 18,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          btnStatus == BtnStatus.loading
+              ? Container(
+            margin: const EdgeInsets.only(right: 16),
+            child: const SizedBox(
+              height: 17,
+              width: 17,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                backgroundColor: Color.fromARGB(77, 255, 255, 255),
+                valueColor: AlwaysStoppedAnimation(Colors.white),
               ),
             ),
-          ],
-        ),
+          )
+              : Container(),
+          Text(
+            text ?? '',
+            style: TextStyle(
+              color: btnStatus == BtnStatus.normal || btnStatus == BtnStatus.loading
+                  ? Colors.white
+                  : const Color.fromARGB(102, 255, 255, 255),
+              fontSize: widget.textFontSize,
+            ),
+          ),
+        ],
       ),
     );
   }
