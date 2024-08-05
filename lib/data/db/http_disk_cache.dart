@@ -1,11 +1,9 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:remote_files/data/db/db_helper.dart';
 import 'package:remote_files/utils/lru_cache.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 class HttpDiskCacheItem {
   int id = -1;
@@ -55,71 +53,13 @@ abstract class HttpDiskCache {
 class _EmptyHttpDiskCache extends HttpDiskCache {}
 
 class HttpDiskCacheImpl extends HttpDiskCache {
-  static const String databaseName = 'remote_files.db';
   static const String tableName = 'http_disk_cache';
-  static const int databaseVersion = 1;
   static final LruCache<String, String> _memoryCache = LruCache(20);
-  Database? _db;
 
   HttpDiskCacheImpl._();
 
-  Future<String> _getDbDirPath() async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    String dirName = 'databases';
-    String dirPath = join(appDocDir.path, dirName);
-
-    if (Platform.isAndroid) {
-      dirPath = join(appDocDir.parent.path, dirName);
-    }
-
-    if (Platform.isWindows || Platform.isLinux) {
-      dirPath = join(appDocDir.path, 'remote_files', 'databases');
-    }
-
-    Directory result = Directory(dirPath);
-    if (!result.existsSync()) {
-      result.createSync(recursive: true);
-    }
-    return dirPath;
-  }
-
   Future<Database> _obtainDatabase() async {
-    if (_db == null) {
-      if (Platform.isWindows || Platform.isLinux) {
-        databaseFactory = databaseFactoryFfi;
-      } else if (kIsWeb) {
-        databaseFactory = databaseFactoryFfiWeb;
-      }
-      _db = await openDatabase(
-        join(await _getDbDirPath(), databaseName),
-        version: databaseVersion,
-        onCreate: (db, version) {
-          debugPrint('database onCreate');
-          return _createTable(db);
-        },
-        onUpgrade: (Database db, int oldVersion, int newVersion) {
-          debugPrint('database onUpgrade');
-        },
-      );
-    }
-    return _db!;
-  }
-
-  Future<void> _createTable(Database db) async {
-    // SQLite 中的数据类型参考: https://www.sqlite.org/datatype3.html
-    // SQLite 中的 INTEGER 占 8 字节, Dart 中的 Int 也占 8 字节, 所以时间戳可以使用 INTEGER 存储
-    /*
-    段名解释
-     id: 主键(自增)
-     root_url: 添加服务器时, 填入的服务器地址
-     url: 实际的 url
-     http_response: 上一次 http 请求体的结果
-    */
-    return db.execute('''CREATE TABLE $tableName(
-                id INTEGER PRIMARY KEY AUTOINCREMENT, 
-                root_url TEXT, 
-                url TEXT, 
-                http_response TEXT)''');
+    return DBHelper.obtainDatabase();
   }
 
   /// 当 item 冲突时, 对原数据进行替换
