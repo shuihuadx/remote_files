@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -20,7 +21,7 @@ class App {
   /// 顶部状态栏的系统图标设置为浅色
   static void setLightStatusBarIcon() {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
-      statusBarColor: Platform.isAndroid ? Colors.transparent : Colors.grey,
+      statusBarColor: isAndroid ? Colors.transparent : Colors.grey,
       statusBarBrightness: Brightness.dark,
       statusBarIconBrightness: Brightness.light,
       systemNavigationBarColor: Colors.transparent,
@@ -31,11 +32,19 @@ class App {
   /// 顶部状态栏的系统图标设置为深色
   static void setDarkStatusBarIcon() {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.light.copyWith(
-      statusBarColor: Platform.isAndroid ? Colors.transparent : Colors.grey,
+      statusBarColor: isAndroid ? Colors.transparent : Colors.grey,
       statusBarBrightness: Brightness.light,
       statusBarIconBrightness: Brightness.dark,
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.dark,
     ));
   }
+
+  /// 直接用 Platform.isWindows 的话, 在 web 端会报异常, 而是先要判断 kIsWeb, 再判断 Platform.isWindows
+  static bool isWindows = !kIsWeb && Platform.isWindows;
+  static bool isLinux = !kIsWeb && Platform.isLinux;
+  static bool isMacOS = !kIsWeb && Platform.isMacOS;
+  static bool isAndroid = !kIsWeb && Platform.isAndroid;
+  static bool isIOS = !kIsWeb && Platform.isIOS;
+  static bool isWeb = kIsWeb;
 }

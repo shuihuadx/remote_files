@@ -1,6 +1,5 @@
-import 'dart:io';
-
 import 'package:path/path.dart';
+import 'package:remote_files/app.dart';
 import 'package:remote_files/data/db/db_helper.dart';
 import 'package:remote_files/utils/lru_cache.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -23,11 +22,7 @@ abstract class HttpDiskCache {
   static final HttpDiskCache _instance = HttpDiskCacheImpl._();
 
   static HttpDiskCache get instance {
-    if (Platform.isAndroid ||
-        Platform.isIOS ||
-        Platform.isMacOS ||
-        Platform.isWindows ||
-        Platform.isLinux) {
+    if (App.isAndroid || App.isIOS || App.isMacOS || App.isWindows || App.isLinux) {
       return _instance;
     } else {
       return _emptyInstance;

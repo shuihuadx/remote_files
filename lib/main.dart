@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:remote_files/app.dart';
@@ -14,7 +12,7 @@ import 'package:remote_files/theme/theme_model.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+  if (App.isWindows || App.isLinux || App.isMacOS) {
     WidgetsFlutterBinding.ensureInitialized();
     // 必须加上这一行。
     await windowManager.ensureInitialized();

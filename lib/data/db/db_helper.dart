@@ -4,8 +4,8 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:remote_files/app.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
-import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 
 class DBHelper {
   static const String databaseName = 'remote_files.db';
@@ -50,10 +50,8 @@ class DBHelper {
   }
 
   static Future<Database> _createDatabase() async {
-    if (Platform.isWindows || Platform.isLinux) {
+    if (App.isWindows || App.isLinux) {
       databaseFactory = databaseFactoryFfi;
-    } else if (kIsWeb) {
-      databaseFactory = databaseFactoryFfiWeb;
     }
     return openDatabase(
       join(await _getDbDirPath(), databaseName),
@@ -72,11 +70,11 @@ class DBHelper {
     String dirName = 'databases';
     String dirPath = join(appDocDir.path, dirName);
 
-    if (Platform.isAndroid) {
+    if (App.isAndroid) {
       dirPath = join(appDocDir.parent.path, dirName);
     }
 
-    if (Platform.isWindows || Platform.isLinux) {
+    if (App.isWindows || App.isLinux) {
       // Windows 和 Linux 端使用当前可执行文件的文件夹放置数据库缓存
       String executable = Platform.resolvedExecutable;
       String executableDirectory = File(executable).parent.path;

@@ -1,7 +1,6 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/entities/remote_file.dart';
 import 'package:remote_files/method_channel/remote_file_method_channel.dart';
@@ -185,7 +184,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
-                Platform.isWindows
+                App.isWindows
                     ? ListTile(
                         title: const Text('视频播放器设置'),
                         onTap: () {
@@ -288,7 +287,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                   arguments: remoteFile.url,
                 );
               } else {
-                if (Platform.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
+                if (App.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
                   Configs configs = Configs.getInstanceSync();
                   String videoPlayerPath = configs.videoPlayerPath;
                   if (videoPlayerPath.isEmpty) {
@@ -298,7 +297,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     videoPlayerPath,
                     args: [remoteFile.url],
                   );
-                } else if (Platform.isAndroid) {
+                } else if (App.isAndroid) {
                   RemoteFileMethodChannel.launchRemoteFile(remoteFile);
                 } else {
                   if (!await launchUrl(Uri.parse(remoteFile.url))) {
