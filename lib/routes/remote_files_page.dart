@@ -7,6 +7,7 @@ import 'package:remote_files/method_channel/remote_file_method_channel.dart';
 import 'package:remote_files/network/remote_files_fetcher.dart';
 import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
+import 'package:remote_files/routes/video_player_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/codec_utils.dart';
@@ -287,6 +288,16 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                   arguments: remoteFile.url,
                 );
               } else {
+                if (FileUtils.isVideoFile(remoteFile.fileName)) {
+                  // TODO 是否调用外部播放器
+                  if (App.isWeb || App.isAndroid || App.isIOS || App.isMacOS) {
+                    Navigator.of(context).pushNamed(
+                      VideoPlayerPage.routeName,
+                      arguments: remoteFile.url,
+                    );
+                    return;
+                  }
+                }
                 if (App.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
                   Configs configs = Configs.getInstanceSync();
                   String videoPlayerPath = configs.videoPlayerPath;
