@@ -6,10 +6,13 @@ import 'package:remote_files/utils/file_utils.dart';
 class RemoteFileMethodChannel {
   static const MethodChannel _channel = MethodChannel("RemoteFileMethodChannel");
 
-  static void launchRemoteFile(RemoteFile remoteFile) {
+  static Future<void> launchRemoteFile(RemoteFile remoteFile) async {
     if (App.isAndroid) {
       FileType fileType = FileUtils.getFileType(remoteFile.fileName);
-      _channel.invokeMethod("launchRemoteFile", {"fileType": fileType.name, "url": remoteFile.url});
+      await _channel.invokeMethod("launchRemoteFile", {
+        "fileType": fileType.name,
+        "url": remoteFile.url,
+      });
     }
   }
 }

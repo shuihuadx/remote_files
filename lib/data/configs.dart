@@ -5,12 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:remote_files/utils/prefs.dart';
 
 class Configs {
-  static const String _prefsKeyRemoteServers = "remote_servers";
+  static const String _prefsKeyRemoteServers = 'remote_servers';
   int themeColor = Colors.teal.value;
   List<RemoteServer> remoteServers = [];
-  String currentServerUrl = "";
+  String currentServerUrl = '';
+
   /// 三方视频播放器的地址
-  String videoPlayerPath = "";
+  String videoPlayerPath = '';
+
+  /// 是否使用内置播放器
+  bool useInnerPlayer = true;
 
   static Configs? _singleton;
   static Completer<bool>? _monitor;
@@ -57,8 +61,9 @@ class Configs {
   /// private 从持久化读取出来的 map 转换为 AppSettings 对象
   Configs._fromPersistenceMap(Map<String, dynamic> map) {
     themeColor = map['themeColor'] ?? themeColor;
-    currentServerUrl = map['currentServerUrl'] ?? "";
-    videoPlayerPath = map['videoPlayerPath'] ?? "";
+    currentServerUrl = map['currentServerUrl'] ?? '';
+    videoPlayerPath = map['videoPlayerPath'] ?? '';
+    useInnerPlayer = (map['useInnerPlayer'] ?? '1') == '1';
     (map['remoteServers'] ?? []).forEach((e) {
       RemoteServer remoteServer = RemoteServer();
       remoteServer.serverName = e['serverName'] ?? '';
@@ -79,6 +84,7 @@ class Configs {
           .toList(growable: false),
       'currentServerUrl': currentServerUrl,
       'videoPlayerPath': videoPlayerPath,
+      'useInnerPlayer': useInnerPlayer ? '1' : '0',
     };
   }
 
@@ -91,6 +97,6 @@ class Configs {
 }
 
 class RemoteServer {
-  String serverName = "";
-  String serverUrl = "";
+  String serverName = '';
+  String serverUrl = '';
 }

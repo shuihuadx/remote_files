@@ -41,6 +41,7 @@ enum _Status {
 }
 
 class _RemoteFilesPageState extends State<RemoteFilesPage> {
+  late Configs configs;
   _Status _status = _Status.loading;
   String _errorReason = '';
   RemoteFilesInfo remoteFilesInfo = RemoteFilesInfo(
@@ -55,10 +56,9 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
 
   String getPageTitle(bool isRootUrl) {
     if (isRootUrl) {
-      return Configs.getInstanceSync()
-          .remoteServers
+      return configs.remoteServers
           .firstWhere(
-            (remoteServer) => Configs.getInstanceSync().currentServerUrl == remoteServer.serverUrl,
+            (remoteServer) => configs.currentServerUrl == remoteServer.serverUrl,
           )
           .serverName;
     } else {
@@ -113,8 +113,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
   void initState() {
     DlnaUtils.startSearch();
 
+    configs = Configs.getInstanceSync();
+
     url = widget.url;
-    isRootUrl = Configs.getInstanceSync().currentServerUrl == widget.url;
+    isRootUrl = configs.currentServerUrl == widget.url;
     title = getPageTitle(isRootUrl);
 
     setLoadUrl(widget.url);
@@ -185,12 +187,13 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     style: TextStyle(fontSize: 18, color: Colors.white),
                   ),
                 ),
-                App.isWindows
+                App.isWindows || App.isAndroid
                     ? ListTile(
                         title: const Text('视频播放器设置'),
                         onTap: () {
                           // 视频播放器设置
                           if (mounted) {
+                            Scaffold.of(context).closeDrawer();
                             Navigator.of(context).pushNamed(VideoPlayerSettingsPage.routeName);
                           }
                           return;
@@ -205,9 +208,9 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       // Close the drawer
                       Scaffold.of(context).closeDrawer();
 
-                      var oldCurrentServerUrl = Configs.getInstanceSync().currentServerUrl;
+                      var oldCurrentServerUrl = configs.currentServerUrl;
                       Navigator.of(context).pushNamed(ServerListPage.routeName).then((value) {
-                        var currentServerUrl = Configs.getInstanceSync().currentServerUrl;
+                        var currentServerUrl = configs.currentServerUrl;
                         if (oldCurrentServerUrl != currentServerUrl) {
                           setState(() {
                             setLoadUrl(currentServerUrl);
@@ -289,8 +292,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                 );
               } else {
                 if (FileUtils.isVideoFile(remoteFile.fileName)) {
-                  // TODO 是否调用外部播放器
-                  if (App.isWeb || App.isAndroid || App.isIOS || App.isMacOS) {
+                  if (App.isWeb ||
+                      (App.isAndroid && configs.useInnerPlayer) ||
+                      App.isIOS ||
+                      App.isMacOS) {
                     Navigator.of(context).pushNamed(
                       VideoPlayerPage.routeName,
                       arguments: remoteFile.url,
@@ -299,7 +304,6 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                   }
                 }
                 if (App.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
-                  Configs configs = Configs.getInstanceSync();
                   String videoPlayerPath = configs.videoPlayerPath;
                   if (videoPlayerPath.isEmpty) {
                     videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
@@ -309,7 +313,18 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     args: [remoteFile.url],
                   );
                 } else if (App.isAndroid) {
-                  RemoteFileMethodChannel.launchRemoteFile(remoteFile);
+                  try {
+                    await RemoteFileMethodChannel.launchRemoteFile(remoteFile);
+                  } catch (e) {
+                    if (mounted) {
+                      SnackUtils.showSnack(
+                        context,
+                        message: '调用外部播放器失败, 请尝试使用内置播放器',
+                        backgroundColor: Colors.red,
+                        duration: const Duration(seconds: 2),
+                      );
+                    }
+                  }
                 } else {
                   if (!await launchUrl(Uri.parse(remoteFile.url))) {
                     if (mounted) {
