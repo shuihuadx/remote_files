@@ -124,7 +124,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           }
           arrowRightTimestamp = timestamp;
           // 快进
-          final newPosition = position + seekDuration[max(seekDuration.length, arrowRightCount) - 1];
+          final newPosition = position + seekDuration[min(seekDuration.length, arrowRightCount) - 1];
           await controller.seekTo(newPosition);
         } else if (keyEvent.logicalKey == LogicalKeyboardKey.arrowLeft) {
           Duration? position = await controller.videoPlayerController.position;
@@ -138,7 +138,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           }
           arrowLeftTimestamp = timestamp;
           // 快退
-          final newPosition = position - seekDuration[max(seekDuration.length, arrowLeftCount) - 1];
+          final newPosition = position - seekDuration[min(seekDuration.length, arrowLeftCount) - 1];
           await controller.seekTo(newPosition);
         }
       },
