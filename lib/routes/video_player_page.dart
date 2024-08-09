@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:chewie/chewie.dart';
@@ -52,8 +53,12 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
   int arrowLeftTimestamp = 0;
 
   void _init() async {
-    VideoPlayerController videoPlayerController =
-        VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+    VideoPlayerController videoPlayerController;
+    if (widget.videoUrl.startsWith('http')) {
+      videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl));
+    } else {
+      videoPlayerController = VideoPlayerController.file(File(widget.videoUrl));
+    }
     this.videoPlayerController = videoPlayerController;
     await videoPlayerController.initialize();
     chewieController = ChewieController(

@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
+import 'package:remote_files/data/file_download_manager.dart';
 import 'package:remote_files/entities/remote_file.dart';
 import 'package:remote_files/method_channel/remote_file_method_channel.dart';
 import 'package:remote_files/network/remote_files_fetcher.dart';
+import 'package:remote_files/routes/download_manager_page.dart';
 import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
 import 'package:remote_files/routes/video_player_page.dart';
@@ -222,6 +224,18 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     }
                   },
                 ),
+                App.isWeb
+                    ? const SizedBox()
+                    : ListTile(
+                        title: const Text('下载管理'),
+                        onTap: () {
+                          // 服务器管理
+                          if (mounted) {
+                            Scaffold.of(context).closeDrawer();
+                            Navigator.of(context).pushNamed(DownloadManagerPage.routeName);
+                          }
+                        },
+                      ),
                 ListTile(
                   title: const Text('设置主题色'),
                   onTap: () {
@@ -291,7 +305,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                   arguments: remoteFile.url,
                 );
               } else {
-                if (FileUtils.isVideoFile(remoteFile.fileName)) {
+                bool isVideoFile = FileUtils.isVideoFile(remoteFile.fileName);
+                if (isVideoFile) {
                   if (App.isWeb ||
                       (App.isAndroid && configs.useInnerPlayer) ||
                       App.isIOS ||
@@ -303,7 +318,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     return;
                   }
                 }
-                if (App.isWindows && FileUtils.isVideoFile(remoteFile.fileName)) {
+                if (App.isWindows && isVideoFile) {
                   String videoPlayerPath = configs.videoPlayerPath;
                   if (videoPlayerPath.isEmpty) {
                     videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
@@ -314,12 +329,15 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                   );
                 } else if (App.isAndroid) {
                   try {
-                    await RemoteFileMethodChannel.launchRemoteFile(remoteFile);
+                    await RemoteFileMethodChannel.launchRemoteFile(
+                      fileName: remoteFile.fileName,
+                      url: remoteFile.url,
+                    );
                   } catch (e) {
                     if (mounted) {
                       SnackUtils.showSnack(
                         context,
-                        message: '调用外部播放器失败, 请尝试使用内置播放器',
+                        message: isVideoFile ? '调用外部播放器失败, 请尝试使用内置播放器' : '无法打开文件, 请先在设备上安装支持打开此文件的App',
                         backgroundColor: Colors.red,
                         duration: const Duration(seconds: 2),
                       );
@@ -475,8 +493,8 @@ class FileItem extends StatelessWidget {
                           (fileType == FileType.video ||
                               fileType == FileType.audio ||
                               fileType == FileType.image),
-                      // TODO 文件下载待实现
-                      // enableDownload: !isDir,
+                      // TODO web通过浏览器下载文件
+                      enableDownload: !isDir && !App.isWeb,
                     );
                   },
                   child: Container(
@@ -561,7 +579,15 @@ class FileItem extends StatelessWidget {
       );
       return;
     } else if (value == 2) {
-      // TODO 下载到本地
+      fileDownloadManager.startDownload(
+        fileName: fileName,
+        fileUrl: url,
+      );
+      SnackUtils.showSnack(
+        context,
+        message: '已添加到下载队列',
+        backgroundColor: Theme.of(context).primaryColor,
+      );
       return;
     } else if (value == 3) {
       // 复制链接

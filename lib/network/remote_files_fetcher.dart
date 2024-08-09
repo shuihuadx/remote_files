@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/data/db/http_disk_cache.dart';
@@ -54,6 +56,31 @@ class RemoteFilesFetcher {
     return RemoteFilesParser.parse(
       url: url,
       html: html,
+    );
+  }
+
+  Future<void> downloadFile({
+    required String fileUrl,
+    required String localPath,
+    required CancelToken cancelToken,
+    ProgressCallback? onReceiveProgress,
+  }) async {
+    File file = File(localPath);
+    // 如果文件已存在，则获取文件的大小（字节数），用于断点续传
+    int downloadedBytes = file.existsSync() ? file.lengthSync() : 0;
+    await dio.download(
+      fileUrl,
+      localPath,
+      deleteOnError: false,
+      options: Options(
+        headers: {"Range": "bytes=$downloadedBytes-"},
+      ),
+      onReceiveProgress: (int received, int total) {
+        if (total != -1) {
+          onReceiveProgress?.call(received + downloadedBytes, total);
+        }
+      },
+      cancelToken: cancelToken,
     );
   }
 }
