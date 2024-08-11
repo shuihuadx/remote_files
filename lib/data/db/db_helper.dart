@@ -11,6 +11,7 @@ class DBHelper {
   static const String databaseName = 'remote_files.db';
   static const int databaseVersion = 1;
   static const String tableNameHttpDiskCache = 'http_disk_cache';
+  static const String tableNameFileDownloadRecord = 'file_download_record';
 
   static Database? _db;
   static Completer<bool>? _monitor;
@@ -26,11 +27,30 @@ class DBHelper {
      url: 实际的 url
      http_response: 上一次 http 请求体的结果
     */
-    return db.execute('''CREATE TABLE $tableNameHttpDiskCache(
+    await db.execute('''CREATE TABLE $tableNameHttpDiskCache(
                 id INTEGER PRIMARY KEY AUTOINCREMENT, 
                 root_url TEXT, 
                 url TEXT, 
                 http_response TEXT)''');
+    /*
+    创建文件下载记录表
+    段名解释
+     id: 主键(自增)
+     file_name: 文件名,包含后缀
+     file_url: 文件远端地址
+     local_path: 下载到本地的文件路径
+     file_bytes: 文件总大小
+     download_bytes: 已下载大小
+     complete: 是否下载完成, 1完成, 0未完成
+    */
+    await db.execute('''CREATE TABLE $tableNameFileDownloadRecord(
+                id INTEGER PRIMARY KEY AUTOINCREMENT, 
+                file_name TEXT, 
+                file_url TEXT UNIQUE, 
+                local_path TEXT, 
+                file_bytes INTEGER, 
+                download_bytes INTEGER, 
+                complete INTEGER)''');
   }
 
   static Future<Database> obtainDatabase() async {
@@ -71,7 +91,8 @@ class DBHelper {
     String dirPath = join(appDocDir.path, dirName);
 
     if (App.isAndroid) {
-      dirPath = join(appDocDir.parent.path, dirName);
+      Directory androidDir = await getExternalStorageDirectory()??appDocDir;
+      dirPath = join(androidDir.path, dirName);
     }
 
     if (App.isWindows || App.isLinux) {
@@ -82,8 +103,8 @@ class DBHelper {
     }
 
     Directory result = Directory(dirPath);
-    if (!result.existsSync()) {
-      result.createSync(recursive: true);
+    if (!await result.exists()) {
+      await result.create(recursive: true);
     }
     return dirPath;
   }

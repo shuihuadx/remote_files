@@ -7,7 +7,8 @@
    <application
         android:label="CC Movies"
         android:name="${applicationName}"
-        android:icon="@mipmap/ic_launcher">
+        android:icon="@mipmap/ic_launcher"
+        android:usesCleartextTraffic="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -36,5 +37,15 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+
+       <provider
+           android:name="org.dx.remotefiles.remote_files.RemoteFileProvider"
+           android:authorities="${applicationId}.remotefileprovider"
+           android:exported="false"
+           android:grantUriPermissions="true">
+           <meta-data
+               android:name="android.support.FILE_PROVIDER_PATHS"
+               android:resource="@xml/remote_file_paths" />
+       </provider>
     </application>
 </manifest>

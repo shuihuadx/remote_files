@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/snack_utils.dart';
@@ -9,6 +10,7 @@ import 'package:remote_files/widgets/loading_btn.dart';
 
 class VideoPlayerSettingsPage extends StatefulWidget {
   static String get routeName => 'video_player_settings_page';
+
   const VideoPlayerSettingsPage({super.key});
 
   @override
@@ -17,6 +19,13 @@ class VideoPlayerSettingsPage extends StatefulWidget {
 
 class _VideoPlayerSettingsPageState extends State<VideoPlayerSettingsPage> {
   String videoPlayerPath = '';
+  late Configs configs;
+
+  @override
+  void initState() {
+    configs = Configs.getInstanceSync();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,64 +47,97 @@ class _VideoPlayerSettingsPageState extends State<VideoPlayerSettingsPage> {
           style: TextStyle(fontSize: 18, color: Colors.white),
         ),
       ),
-      body: Column(
+      body: App.isWindows ? videoPlayerPathSetting() : mobileVideoPlayer(),
+    );
+  }
+
+  Widget mobileVideoPlayer() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 50,
+      child: Row(
+        mainAxisSize: MainAxisSize.max,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(height: 16),
-          _TextEditItem(
-            required: false,
-            title: '视频播放器路径',
-            value: Configs.getInstanceSync().videoPlayerPath,
-            textChange: (value) {
-              String lastVideoPlayerPath = videoPlayerPath;
-              videoPlayerPath = value;
-              if (lastVideoPlayerPath.isEmpty != videoPlayerPath.isEmpty) {
-                setState(() {});
+          const Text(
+            '使用内置播放器',
+            style: TextStyle(
+              color: Color(0xff333333),
+              fontSize: 18,
+            ),
+          ),
+          Switch(
+            value: configs.useInnerPlayer,
+            onChanged: (value) {
+              configs.useInnerPlayer = value;
+              configs.save();
+              setState(() {});
+            },
+          )
+        ],
+      ),
+    );
+  }
+
+  Widget videoPlayerPathSetting() {
+    return Column(
+      children: [
+        const SizedBox(height: 16),
+        _TextEditItem(
+          required: false,
+          title: '视频播放器路径',
+          value: Configs.getInstanceSync().videoPlayerPath,
+          textChange: (value) {
+            String lastVideoPlayerPath = videoPlayerPath;
+            videoPlayerPath = value;
+            if (lastVideoPlayerPath.isEmpty != videoPlayerPath.isEmpty) {
+              setState(() {});
+            }
+          },
+        ),
+        const SizedBox(height: 20),
+        Container(
+          height: 50,
+          margin: const EdgeInsets.only(left: 16, top: 16, right: 16),
+          child: LoadingBtn(
+            key: Key(videoPlayerPath),
+            text: '确定',
+            btnStatus: videoPlayerPath.isEmpty ? BtnStatus.disable : BtnStatus.normal,
+            onTap: () async {
+              bool isOk = false;
+              try {
+                File videoPlayerFile = File(videoPlayerPath);
+                if (await videoPlayerFile.exists()) {
+                  isOk = true;
+                }
+              } catch (e) {
+                isOk = false;
+              }
+              if (isOk) {
+                Configs config = Configs.getInstanceSync();
+                config.videoPlayerPath = videoPlayerPath;
+                config.save();
+                if (mounted) {
+                  SnackUtils.showSnack(
+                    context,
+                    message: "已保存",
+                    backgroundColor: Theme.of(context).primaryColor,
+                  );
+                }
+              } else {
+                if (mounted) {
+                  SnackUtils.showSnack(
+                    context,
+                    message: "文件无法读取, 请确认是否选中视频播放器exe可执行文件",
+                    duration: const Duration(seconds: 2),
+                  );
+                }
               }
             },
           ),
-          const SizedBox(height: 20),
-          Container(
-            height: 50,
-            margin: const EdgeInsets.only(left: 16, top: 16, right: 16),
-            child: LoadingBtn(
-              key: Key(videoPlayerPath),
-              text: '确定',
-              btnStatus: videoPlayerPath.isEmpty ? BtnStatus.disable : BtnStatus.normal,
-              onTap: () async {
-                bool isOk = false;
-                try {
-                  File videoPlayerFile = File(videoPlayerPath);
-                  if (await videoPlayerFile.exists()) {
-                    isOk = true;
-                  }
-                } catch (e) {
-                  isOk = false;
-                }
-                if (isOk) {
-                  Configs config = Configs.getInstanceSync();
-                  config.videoPlayerPath = videoPlayerPath;
-                  config.save();
-                  if (mounted) {
-                    SnackUtils.showSnack(
-                      context,
-                      message: "已保存",
-                      backgroundColor: Theme.of(context).primaryColor,
-                    );
-                  }
-                } else {
-                  if (mounted) {
-                    SnackUtils.showSnack(
-                      context,
-                      message: "文件无法读取, 请确认是否选中视频播放器exe可执行文件",
-                      duration: const Duration(seconds: 2),
-                    );
-                  }
-                }
-              },
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

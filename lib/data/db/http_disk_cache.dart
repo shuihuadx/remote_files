@@ -48,7 +48,7 @@ abstract class HttpDiskCache {
 class _EmptyHttpDiskCache extends HttpDiskCache {}
 
 class HttpDiskCacheImpl extends HttpDiskCache {
-  static const String tableName = 'http_disk_cache';
+  static const String tableName = DBHelper.tableNameHttpDiskCache;
   static final LruCache<String, String> _memoryCache = LruCache(20);
 
   HttpDiskCacheImpl._();
