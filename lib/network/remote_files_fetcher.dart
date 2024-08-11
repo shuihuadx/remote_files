@@ -1,6 +1,9 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
+import 'package:flutter/material.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/data/db/http_disk_cache.dart';
 import 'package:remote_files/data/remote_files_parser.dart';
@@ -64,23 +67,70 @@ class RemoteFilesFetcher {
     required String localPath,
     required CancelToken cancelToken,
     ProgressCallback? onReceiveProgress,
+    Function()? onDone,
+    Function()? onCancel,
+    Function(Exception)? onFailed,
   }) async {
     File file = File(localPath);
     // 如果文件已存在，则获取文件的大小（字节数），用于断点续传
     int downloadedBytes = file.existsSync() ? file.lengthSync() : 0;
-    await dio.download(
-      fileUrl,
-      localPath,
-      deleteOnError: false,
-      options: Options(
-        headers: {"Range": "bytes=$downloadedBytes-"},
-      ),
-      onReceiveProgress: (int received, int total) {
-        if (total != -1) {
-          onReceiveProgress?.call(received + downloadedBytes, total);
-        }
-      },
-      cancelToken: cancelToken,
-    );
+    try {
+      var response = await dio.get<ResponseBody>(
+        fileUrl,
+        options: Options(
+          responseType: ResponseType.stream,
+          followRedirects: false,
+          headers: {
+            /// 加入range请求头，实现断点续传
+            "range": "bytes=$downloadedBytes-",
+          },
+        ),
+      );
+      File file = File(localPath);
+      RandomAccessFile raf = file.openSync(mode: FileMode.append);
+      int received = downloadedBytes;
+      int total = await _getContentLength(response);
+      Stream<Uint8List> stream = response.data!.stream;
+      StreamSubscription<Uint8List>? subscription;
+      subscription = stream.listen(
+        (data) {
+          raf.writeFromSync(data);
+          received += data.length;
+          onReceiveProgress?.call(received, total);
+        },
+        onDone: () async {
+          await raf.close();
+          onDone?.call();
+        },
+        onError: (e) async {
+          await raf.close();
+          onFailed?.call(e);
+        },
+        cancelOnError: true,
+      );
+      cancelToken.whenCancel.then((_) async {
+        await subscription?.cancel();
+        await raf.close();
+      });
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) {
+        debugPrint("Download cancelled");
+      } else {
+        onFailed?.call(error);
+      }
+    }
+  }
+
+  Future<int> _getContentLength(Response<ResponseBody> response) async {
+    try {
+      var headerContent = response.headers.value(HttpHeaders.contentRangeHeader);
+      if (headerContent != null) {
+        return int.parse(headerContent.split('/').last);
+      } else {
+        return 0;
+      }
+    } catch (e) {
+      return 0;
+    }
   }
 }

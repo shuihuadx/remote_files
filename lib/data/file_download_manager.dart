@@ -165,30 +165,35 @@ class FileDownloadManager {
             );
           }
         },
-      );
-      File file = File(localPath);
-      if (file.existsSync()) {
-        fileBytes = file.lengthSync();
-      }
+        onDone: () {
+          File file = File(localPath);
+          if (file.existsSync()) {
+            fileBytes = file.lengthSync();
+          }
 
-      // 下载完成
-      fileDownloadStatus.isDownloading = false;
-      fileDownloadStatus.cancelToken = null;
-      fileDownloadStatus.fileDownloadRecord.downloadBytes = fileBytes;
-      fileDownloadStatus.progressCallback?.call(fileBytes, fileBytes);
-      fileDownloadStatus.progressCallback = null;
+          // 下载完成
+          fileDownloadStatus.isDownloading = false;
+          fileDownloadStatus.cancelToken = null;
+          fileDownloadStatus.fileDownloadRecord.downloadBytes = fileBytes;
+          fileDownloadStatus.progressCallback?.call(fileBytes, fileBytes);
+          fileDownloadStatus.progressCallback = null;
 
-      fileDownloadStatus.fileDownloadRecord.complete = true;
-      fileDownloadStatus.fileDownloadRecord.complete = true;
+          fileDownloadStatus.fileDownloadRecord.complete = true;
+          fileDownloadStatus.fileDownloadRecord.complete = true;
 
-      FileDownloadDB.instance.updateDownload(
-        fileUrl: fileUrl,
-        downloadBytes: fileBytes,
-        fileBytes: fileBytes,
-        complete: true,
+          FileDownloadDB.instance.updateDownload(
+            fileUrl: fileUrl,
+            downloadBytes: fileBytes,
+            fileBytes: fileBytes,
+            complete: true,
+          );
+        },
       );
     } catch (e) {
+      // TODO 下载出错时，需要记录并显示出来
       // 网络错误, 或者下载被取消
+      fileDownloadStatus.isDownloading = false;
+      fileDownloadStatus.cancelToken = null;
     }
   }
 }
