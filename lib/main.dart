@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:remote_files/app.dart';
 import 'package:remote_files/routes/add_server_page.dart';
+import 'package:remote_files/routes/download_manager_page.dart';
 import 'package:remote_files/routes/main_page.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
 import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
+import 'package:remote_files/routes/video_player_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/theme/theme_model.dart';
 import 'package:window_manager/window_manager.dart';
 
 void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
   if (App.isWindows || App.isLinux || App.isMacOS) {
-    WidgetsFlutterBinding.ensureInitialized();
     // 必须加上这一行。
     await windowManager.ensureInitialized();
 
@@ -55,6 +57,7 @@ class MyApp extends StatelessWidget {
         ThemeColorSettingsPage.routeName: (context) => const ThemeColorSettingsPage(),
         VideoPlayerSettingsPage.routeName: (context) => const VideoPlayerSettingsPage(),
         ServerListPage.routeName: (context) => const ServerListPage(),
+        DownloadManagerPage.routeName: (context) => const DownloadManagerPage(),
         '/': (context) => const MainPage(),
       },
       onGenerateRoute: (RouteSettings settings) {
@@ -64,6 +67,15 @@ class MyApp extends StatelessWidget {
             builder: (context) {
               return RemoteFilesPage(
                 url: settings.arguments as String,
+              );
+            },
+            settings: settings,
+          );
+        } else if (routeName == VideoPlayerPage.routeName) {
+          return MaterialPageRoute(
+            builder: (context) {
+              return VideoPlayerPage(
+                videoUrl: settings.arguments as String,
               );
             },
             settings: settings,

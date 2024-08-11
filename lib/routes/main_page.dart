@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:remote_files/data/configs.dart';
+import 'package:remote_files/data/file_download_manager.dart';
 import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
@@ -20,8 +21,6 @@ class MainPage extends StatefulWidget {
 
 class _MainPageState extends State<MainPage> {
   Future<void> _init() async {
-    await isolateExecutor.init();
-
     Configs configs = await Configs.getInstance();
     // 当 App 没有数据时, 使用默认服务器
     if (configs.remoteServers.isEmpty) {
@@ -30,6 +29,9 @@ class _MainPageState extends State<MainPage> {
       await configs.save();
     }
     AppTheme.themeModel.setThemeData(AppTheme.createThemeDataByColor(Color(configs.themeColor)));
+
+    await isolateExecutor.init();
+    await fileDownloadManager.init();
 
     if (mounted) {
       if (configs.remoteServers.isEmpty) {

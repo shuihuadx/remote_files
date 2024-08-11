@@ -16,7 +16,3 @@ or
 ```
 sudo apt-get -y install libsqlite3-0 libsqlite3-dev
 ```
-
-
-# TODO
-- [ ] 文件下载到本地;

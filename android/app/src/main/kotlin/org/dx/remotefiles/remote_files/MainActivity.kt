@@ -1,10 +1,12 @@
 package org.dx.remotefiles.remote_files
 
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.embedding.engine.FlutterEngine
-import android.content.Intent
-import android.net.Uri
+import java.io.File
 
 class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -26,7 +28,16 @@ class MainActivity : FlutterActivity() {
                         return@setMethodCallHandler
                     }
                     val intent = Intent(Intent.ACTION_VIEW)
-                    val uri = Uri.parse(url)
+                    val uri = if (url.startsWith("http")) {
+                        Uri.parse(url)
+                    } else {
+                        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                            RemoteFileProvider.getUriForFile(this@MainActivity, File(url))
+                        } else {
+                            Uri.fromFile(File(url))
+                        }
+                    }
                     if (fileType == "video") {
                         intent.setDataAndType(uri, "video/*")
                     } else if (fileType == "audio") {
@@ -38,7 +49,7 @@ class MainActivity : FlutterActivity() {
                     } else {
                         intent.setDataAndType(uri, "application/*")
                     }
-                    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(intent)
 
                     result.success(true)
