@@ -113,7 +113,9 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
 
   @override
   void initState() {
-    DlnaUtils.startSearch();
+    if (!App.isWeb) {
+      DlnaUtils.startSearch();
+    }
 
     configs = Configs.getInstanceSync();
 
@@ -307,10 +309,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
               } else {
                 bool isVideoFile = FileUtils.isVideoFile(remoteFile.fileName);
                 if (isVideoFile) {
-                  if (App.isWeb ||
-                      (App.isAndroid && configs.useInnerPlayer) ||
-                      App.isIOS ||
-                      App.isMacOS) {
+                  if (App.isWeb || (App.isAndroid && configs.useInnerPlayer) || App.isIOS || App.isMacOS) {
                     Navigator.of(context).pushNamed(
                       VideoPlayerPage.routeName,
                       arguments: remoteFile.url,
@@ -489,7 +488,8 @@ class FileItem extends StatelessWidget {
                         details.globalPosition.dx,
                         details.globalPosition.dy,
                       ),
-                      enableDLNA: !isDir &&
+                      enableDLNA: !App.isWeb &&
+                          !isDir &&
                           (fileType == FileType.video ||
                               fileType == FileType.audio ||
                               fileType == FileType.image),
@@ -524,23 +524,67 @@ class FileItem extends StatelessWidget {
   }) async {
     List<PopupMenuItem> menuItems = [];
     if (enableDLNA) {
-      menuItems.add(const PopupMenuItem(
+      menuItems.add(PopupMenuItem(
         value: 1,
-        child: Text('DLNA投屏'),
+        child: const Text('DLNA投屏'),
+        onTap: (){
+          // 通过DLNA投屏播放
+          showModalBottomSheet(
+            context: context,
+            useSafeArea: true,
+            showDragHandle: true,
+            isScrollControlled: true,
+            builder: (context) {
+              return DraggableScrollableSheet(
+                expand: false,
+                builder: (context, scrollController) {
+                  return SingleChildScrollView(
+                    controller: scrollController,
+                    child: DlnaDevicesWidget(
+                      onDeviceSelected: (device) {
+                        DlnaUtils.play(device, url);
+                      },
+                    ),
+                  );
+                },
+              );
+            },
+          );
+        },
       ));
     }
     if (enableDownload) {
-      menuItems.add(const PopupMenuItem(
+      menuItems.add(PopupMenuItem(
         value: 2,
-        child: Text('下载到本地'),
+        child: const Text('下载到本地'),
+        onTap: (){
+          fileDownloadManager.startDownload(
+            fileName: fileName,
+            fileUrl: url,
+          );
+          SnackUtils.showSnack(
+            context,
+            message: '已添加到下载队列',
+            backgroundColor: Theme.of(context).primaryColor,
+          );
+        },
       ));
     }
-    menuItems.add(const PopupMenuItem(
+    menuItems.add(PopupMenuItem(
       value: 3,
-      child: Text('复制链接'),
+      child: const Text('复制链接'),
+      onTap: (){
+        // 复制链接
+        Clipboard.setData(ClipboardData(text: url));
+        SnackUtils.showSnack(
+          context,
+          message: '已复制文件地址',
+          backgroundColor: Theme.of(context).primaryColor,
+        );
+      },
     ));
 
-    dynamic value = await showMenu(
+    await showMenu(
       context: context,
       position: RelativeRect.fromLTRB(
         position.dx,
@@ -551,53 +595,5 @@ class FileItem extends StatelessWidget {
       items: menuItems,
       elevation: 8.0,
     );
-    if (value == null) {
-      return;
-    }
-    if (value == 1) {
-      // 通过DLNA投屏播放
-      showModalBottomSheet(
-        context: context,
-        useSafeArea: true,
-        showDragHandle: true,
-        isScrollControlled: true,
-        builder: (context) {
-          return DraggableScrollableSheet(
-            expand: false,
-            builder: (context, scrollController) {
-              return SingleChildScrollView(
-                controller: scrollController,
-                child: DlnaDevicesWidget(
-                  onDeviceSelected: (device) {
-                    DlnaUtils.play(device, url);
-                  },
-                ),
-              );
-            },
-          );
-        },
-      );
-      return;
-    } else if (value == 2) {
-      fileDownloadManager.startDownload(
-        fileName: fileName,
-        fileUrl: url,
-      );
-      SnackUtils.showSnack(
-        context,
-        message: '已添加到下载队列',
-        backgroundColor: Theme.of(context).primaryColor,
-      );
-      return;
-    } else if (value == 3) {
-      // 复制链接
-      Clipboard.setData(ClipboardData(text: url));
-      SnackUtils.showSnack(
-        context,
-        message: '已复制文件地址',
-        backgroundColor: Theme.of(context).primaryColor,
-      );
-      return;
-    }
   }
 }

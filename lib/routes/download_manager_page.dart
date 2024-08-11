@@ -280,7 +280,7 @@ class _FileItemState extends State<FileItem> {
                         details.globalPosition.dx,
                         details.globalPosition.dy,
                       ),
-                      enableDLNA: (fileType == FileType.video ||
+                      enableDLNA: !App.isWeb&&(fileType == FileType.video ||
                           fileType == FileType.audio ||
                           fileType == FileType.image),
                     );
