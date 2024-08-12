@@ -48,6 +48,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     remoteFiles: [],
     htmlResponse: '',
   );
+  bool enableDownload = !App.isWeb;
   late String url;
   bool isRootUrl = false;
   late String title;
@@ -108,13 +109,16 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     });
   }
 
+  void _initEnableDownload() async {
+    if (await App.isAndroidTv()) {
+      enableDownload = false;
+    }
+  }
+
   @override
   void initState() {
-    if (!App.isWeb) {
-      DlnaUtils.startSearch();
-    }
-
     configs = Configs.getInstanceSync();
+    _initEnableDownload();
 
     url = widget.url;
     isRootUrl = configs.currentServerUrl == widget.url;
@@ -223,9 +227,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     }
                   },
                 ),
-                App.isWeb
-                    ? const SizedBox()
-                    : ListTile(
+                enableDownload
+                    ? ListTile(
                         title: const Text('下载管理'),
                         onTap: () {
                           // 服务器管理
@@ -234,7 +237,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                             Navigator.of(context).pushNamed(DownloadManagerPage.routeName);
                           }
                         },
-                      ),
+                      )
+                    : const SizedBox(),
                 ListTile(
                   title: const Text('设置主题色'),
                   onTap: () {
@@ -315,6 +319,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
               fileName: remoteFile.fileName,
               url: remoteFile.url,
               isDir: remoteFile.isDir,
+              enableDownload: enableDownload,
             ),
           );
         },
@@ -327,12 +332,14 @@ class FileItem extends StatelessWidget {
   final String fileName;
   final String url;
   final bool isDir;
+  final bool enableDownload;
 
   const FileItem({
     super.key,
     required this.fileName,
     required this.url,
     required this.isDir,
+    required this.enableDownload,
   });
 
   Widget getFileIcon(BuildContext context, String fileName) {
@@ -434,7 +441,7 @@ class FileItem extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTapDown: (TapDownDetails details) {
+                  onTapDown: (TapDownDetails details) async {
                     FileType fileType = FileUtils.getFileType(fileName);
                     // 是否已经存在下载记录了
                     bool existDownloadRecord = fileDownloadManager.get(url) != null;
@@ -446,11 +453,12 @@ class FileItem extends StatelessWidget {
                         details.globalPosition.dy,
                       ),
                       enableDLNA: !App.isWeb &&
+                          !(await App.isAndroidTv()) &&
                           !isDir &&
                           (fileType == FileType.video ||
                               fileType == FileType.audio ||
                               fileType == FileType.image),
-                      enableDownload: !isDir && !App.isWeb && !existDownloadRecord,
+                      enableDownload: !isDir && enableDownload && !existDownloadRecord,
                     );
                   },
                   child: Container(

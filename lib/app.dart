@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:io';
 
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -47,4 +49,24 @@ class App {
   static bool isAndroid = !kIsWeb && Platform.isAndroid;
   static bool isIOS = !kIsWeb && Platform.isIOS;
   static bool isWeb = kIsWeb;
+
+  static bool? _isAndroidTv;
+
+  static FutureOr<bool> isAndroidTv() async {
+    if (_isAndroidTv != null) {
+      return _isAndroidTv!;
+    } else {
+      if (!isAndroid) {
+        _isAndroidTv = false;
+        return false;
+      }
+      DeviceInfoPlugin deviceInfo = DeviceInfoPlugin();
+      AndroidDeviceInfo androidInfo = await deviceInfo.androidInfo;
+
+      String? systemFeatures = androidInfo.systemFeatures.join(",");
+      _isAndroidTv = systemFeatures.contains('android.software.leanback');
+
+      return _isAndroidTv!;
+    }
+  }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
+import 'package:remote_files/data/db/file_download_record.dart';
 import 'package:remote_files/data/file_download_manager.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/dlna_utils.dart';
@@ -52,7 +53,7 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
           style: TextStyle(fontSize: 18, color: Colors.white),
         ),
       ),
-      body: ListView.separated(
+      body: ListView.builder(
         itemBuilder: (BuildContext context, int index) {
           FileDownloadStatus item = data[index];
           String fileName = item.fileDownloadRecord.fileName;
@@ -84,13 +85,6 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                 }
               },
             ),
-          );
-        },
-        separatorBuilder: (BuildContext context, int index) {
-          return const Divider(
-            color: Color(0xFFE5E5E5),
-            indent: 1,
-            height: 0,
           );
         },
         itemCount: data.length,
@@ -150,6 +144,31 @@ class _FileItemState extends State<FileItem> {
     }
   }
 
+  Icon getShowIcon(DownloadStatus status) {
+    switch (status) {
+      case DownloadStatus.downloading:
+        return const Icon(
+          Icons.pause,
+          color: Colors.grey,
+        );
+      case DownloadStatus.pause:
+        return const Icon(
+          Icons.download,
+          color: Colors.grey,
+        );
+      case DownloadStatus.failed:
+        return const Icon(
+          Icons.error_outline,
+          color: Colors.red,
+        );
+      default:
+        return const Icon(
+          Icons.check,
+          color: Colors.grey,
+        );
+    }
+  }
+
   @override
   void initState() {
     if (!widget.fileDownloadStatus.fileDownloadRecord.isDone) {
@@ -165,12 +184,15 @@ class _FileItemState extends State<FileItem> {
   @override
   Widget build(BuildContext context) {
     FileDownloadStatus item = widget.fileDownloadStatus;
-    String fileName = item.fileDownloadRecord.fileName;
-    String fileUrl = item.fileDownloadRecord.fileUrl;
-    bool isDone = item.fileDownloadRecord.isDone;
-    double fileSize = item.fileDownloadRecord.fileBytes.toDouble();
+    FileDownloadRecord downloadRecord = item.fileDownloadRecord;
+    String fileName = downloadRecord.fileName;
+    String fileUrl = downloadRecord.fileUrl;
+    bool isDone = downloadRecord.isDone;
+    double fileSize = downloadRecord.fileBytes.toDouble();
+
     double progress =
-        isDone ? 1 : item.fileDownloadRecord.downloadBytes.toDouble() / (fileSize == 0 ? 1 : fileSize);
+        isDone ? 1 : downloadRecord.downloadBytes.toDouble() / (fileSize == 0 ? 1 : fileSize);
+
     return SizedBox(
       height: 64.0,
       child: Column(
@@ -224,10 +246,23 @@ class _FileItemState extends State<FileItem> {
                   ),
                 ),
                 Visibility(
-                  visible: item.fileDownloadRecord.isFailed,
-                  child: const Icon(
-                    Icons.error_outline,
-                    color: Colors.red,
+                  visible: !downloadRecord.isDone,
+                  child: IconButton(
+                    onPressed: () {
+                      switch (downloadRecord.status) {
+                        case DownloadStatus.downloading:
+                          fileDownloadManager.pause(fileUrl: fileUrl);
+                          break;
+                        case DownloadStatus.pause:
+                        case DownloadStatus.failed:
+                          fileDownloadManager.startDownload(fileName: fileName, fileUrl: fileUrl);
+                          break;
+                        default:
+                          break;
+                      }
+                      setState(() {});
+                    },
+                    icon: getShowIcon(downloadRecord.status),
                   ),
                 ),
                 GestureDetector(
@@ -241,6 +276,7 @@ class _FileItemState extends State<FileItem> {
                         details.globalPosition.dy,
                       ),
                       enableDLNA: !App.isWeb &&
+                          !(await App.isAndroidTv()) &&
                           (fileType == FileType.video ||
                               fileType == FileType.audio ||
                               fileType == FileType.image),
@@ -251,7 +287,12 @@ class _FileItemState extends State<FileItem> {
                   },
                   child: Container(
                     color: Colors.transparent,
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      top: 12,
+                      right: 12,
+                      bottom: 12,
+                    ),
                     child: const Icon(
                       Icons.more_vert,
                       color: Colors.grey,
@@ -266,10 +307,14 @@ class _FileItemState extends State<FileItem> {
             visible: !isDone,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation(Theme.of(context).primaryColor),
-                value: progress,
+              child: SizedBox(
+                height: 4,
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(2),
+                  valueColor: AlwaysStoppedAnimation(Theme.of(context).primaryColor),
+                  value: progress,
+                ),
               ),
             ),
           )
