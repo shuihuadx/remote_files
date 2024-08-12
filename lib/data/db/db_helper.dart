@@ -41,7 +41,7 @@ class DBHelper {
      local_path: 下载到本地的文件路径
      file_bytes: 文件总大小
      download_bytes: 已下载大小
-     complete: 是否下载完成, 1完成, 0未完成
+     status: 下载状态, 0: 下载中; 1: 下载完成; 2: 暂停; 3: 下载失败
     */
     await db.execute('''CREATE TABLE $tableNameFileDownloadRecord(
                 id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -50,7 +50,7 @@ class DBHelper {
                 local_path TEXT, 
                 file_bytes INTEGER, 
                 download_bytes INTEGER, 
-                complete INTEGER)''');
+                status INTEGER)''');
   }
 
   static Future<Database> obtainDatabase() async {
