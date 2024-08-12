@@ -77,6 +77,7 @@ class RemoteFilesFetcher {
     try {
       var response = await dio.get<ResponseBody>(
         fileUrl,
+        cancelToken: cancelToken,
         options: Options(
           responseType: ResponseType.stream,
           followRedirects: false,

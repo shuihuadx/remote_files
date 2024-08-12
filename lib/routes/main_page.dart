@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/data/file_download_manager.dart';
 import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
+import 'package:remote_files/utils/dlna_utils.dart';
 import 'package:remote_files/utils/isolate_executor.dart';
 import 'package:remote_files/widgets/loading_widget.dart';
 
@@ -32,6 +34,14 @@ class _MainPageState extends State<MainPage> {
 
     await isolateExecutor.init();
     await fileDownloadManager.init();
+
+    bool enableDlnaPlay = !App.isWeb;
+    if (await App.isAndroidTv()) {
+      enableDlnaPlay = false;
+    }
+    if (enableDlnaPlay) {
+      DlnaUtils.startSearch();
+    }
 
     if (mounted) {
       if (configs.remoteServers.isEmpty) {

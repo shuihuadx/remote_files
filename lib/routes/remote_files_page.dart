@@ -4,24 +4,21 @@ import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/data/file_download_manager.dart';
 import 'package:remote_files/entities/remote_file.dart';
-import 'package:remote_files/method_channel/remote_file_method_channel.dart';
 import 'package:remote_files/network/remote_files_fetcher.dart';
 import 'package:remote_files/routes/download_manager_page.dart';
 import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
-import 'package:remote_files/routes/video_player_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/codec_utils.dart';
 import 'package:remote_files/utils/dlna_utils.dart';
+import 'package:remote_files/utils/file_click_handle.dart';
 import 'package:remote_files/utils/file_utils.dart';
-import 'package:remote_files/utils/process_helper.dart';
 import 'package:remote_files/utils/snack_utils.dart';
 import 'package:remote_files/utils/url_utils.dart';
 import 'package:remote_files/widgets/dlna_devices_widget.dart';
 import 'package:remote_files/widgets/loading_widget.dart';
 import 'package:remote_files/widgets/reloading_widget.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class RemoteFilesPage extends StatefulWidget {
   static String get routeName => 'remote_files_page';
@@ -51,6 +48,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     remoteFiles: [],
     htmlResponse: '',
   );
+  bool enableDownload = !App.isWeb;
   late String url;
   bool isRootUrl = false;
   late String title;
@@ -111,13 +109,16 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     });
   }
 
+  void _initEnableDownload() async {
+    if (await App.isAndroidTv()) {
+      enableDownload = false;
+    }
+  }
+
   @override
   void initState() {
-    if (!App.isWeb) {
-      DlnaUtils.startSearch();
-    }
-
     configs = Configs.getInstanceSync();
+    _initEnableDownload();
 
     url = widget.url;
     isRootUrl = configs.currentServerUrl == widget.url;
@@ -226,9 +227,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     }
                   },
                 ),
-                App.isWeb
-                    ? const SizedBox()
-                    : ListTile(
+                enableDownload
+                    ? ListTile(
                         title: const Text('下载管理'),
                         onTap: () {
                           // 服务器管理
@@ -237,7 +237,8 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                             Navigator.of(context).pushNamed(DownloadManagerPage.routeName);
                           }
                         },
-                      ),
+                      )
+                    : const SizedBox(),
                 ListTile(
                   title: const Text('设置主题色'),
                   onTap: () {
@@ -307,59 +308,18 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                   arguments: remoteFile.url,
                 );
               } else {
-                bool isVideoFile = FileUtils.isVideoFile(remoteFile.fileName);
-                if (isVideoFile) {
-                  if (App.isWeb || (App.isAndroid && configs.useInnerPlayer) || App.isIOS || App.isMacOS) {
-                    Navigator.of(context).pushNamed(
-                      VideoPlayerPage.routeName,
-                      arguments: remoteFile.url,
-                    );
-                    return;
-                  }
-                }
-                if (App.isWindows && isVideoFile) {
-                  String videoPlayerPath = configs.videoPlayerPath;
-                  if (videoPlayerPath.isEmpty) {
-                    videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
-                  }
-                  ProcessHelper.run(
-                    videoPlayerPath,
-                    args: [remoteFile.url],
-                  );
-                } else if (App.isAndroid) {
-                  try {
-                    await RemoteFileMethodChannel.launchRemoteFile(
-                      fileName: remoteFile.fileName,
-                      url: remoteFile.url,
-                    );
-                  } catch (e) {
-                    if (mounted) {
-                      SnackUtils.showSnack(
-                        context,
-                        message: isVideoFile ? '调用外部播放器失败, 请尝试使用内置播放器' : '无法打开文件, 请先在设备上安装支持打开此文件的App',
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 2),
-                      );
-                    }
-                  }
-                } else {
-                  if (!await launchUrl(Uri.parse(remoteFile.url))) {
-                    if (mounted) {
-                      SnackUtils.showSnack(
-                        context,
-                        message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
-                        backgroundColor: Colors.red,
-                        duration: const Duration(seconds: 2),
-                      );
-                    }
-                  }
-                }
+                FileClickHandle.handleFileClick(
+                  context: context,
+                  fileName: remoteFile.fileName,
+                  fileUrl: remoteFile.url,
+                );
               }
             },
             child: FileItem(
               fileName: remoteFile.fileName,
               url: remoteFile.url,
               isDir: remoteFile.isDir,
+              enableDownload: enableDownload,
             ),
           );
         },
@@ -372,12 +332,14 @@ class FileItem extends StatelessWidget {
   final String fileName;
   final String url;
   final bool isDir;
+  final bool enableDownload;
 
   const FileItem({
     super.key,
     required this.fileName,
     required this.url,
     required this.isDir,
+    required this.enableDownload,
   });
 
   Widget getFileIcon(BuildContext context, String fileName) {
@@ -479,8 +441,10 @@ class FileItem extends StatelessWidget {
                   ),
                 ),
                 GestureDetector(
-                  onTapDown: (TapDownDetails details) {
+                  onTapDown: (TapDownDetails details) async {
                     FileType fileType = FileUtils.getFileType(fileName);
+                    // 是否已经存在下载记录了
+                    bool existDownloadRecord = fileDownloadManager.get(url) != null;
                     showMoreMenus(
                       context: context,
                       url: url,
@@ -489,12 +453,12 @@ class FileItem extends StatelessWidget {
                         details.globalPosition.dy,
                       ),
                       enableDLNA: !App.isWeb &&
+                          !(await App.isAndroidTv()) &&
                           !isDir &&
                           (fileType == FileType.video ||
                               fileType == FileType.audio ||
                               fileType == FileType.image),
-                      // TODO web通过浏览器下载文件
-                      enableDownload: !isDir && !App.isWeb,
+                      enableDownload: !isDir && enableDownload && !existDownloadRecord,
                     );
                   },
                   child: Container(
@@ -527,7 +491,7 @@ class FileItem extends StatelessWidget {
       menuItems.add(PopupMenuItem(
         value: 1,
         child: const Text('DLNA投屏'),
-        onTap: (){
+        onTap: () {
           // 通过DLNA投屏播放
           showModalBottomSheet(
             context: context,
@@ -556,8 +520,7 @@ class FileItem extends StatelessWidget {
     if (enableDownload) {
       menuItems.add(PopupMenuItem(
         value: 2,
-        child: const Text('下载到本地'),
-        onTap: (){
+        onTap: () {
           fileDownloadManager.startDownload(
             fileName: fileName,
             fileUrl: url,
@@ -568,12 +531,13 @@ class FileItem extends StatelessWidget {
             backgroundColor: Theme.of(context).primaryColor,
           );
         },
+        child: const Text('下载到本地'),
       ));
     }
     menuItems.add(PopupMenuItem(
       value: 3,
       child: const Text('复制链接'),
-      onTap: (){
+      onTap: () {
         // 复制链接
         Clipboard.setData(ClipboardData(text: url));
         SnackUtils.showSnack(

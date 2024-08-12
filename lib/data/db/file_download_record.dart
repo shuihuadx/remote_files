@@ -2,6 +2,39 @@ import 'package:remote_files/app.dart';
 import 'package:remote_files/data/db/db_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
+/// 下载状态
+enum DownloadStatus {
+  /// 下载中
+  downloading,
+
+  /// 下载完成
+  done,
+
+  /// 暂停
+  pause,
+
+  /// 下载失败
+  failed;
+}
+
+extension DownloadStatusHelper on DownloadStatus {
+  int get code {
+    return index;
+  }
+
+  static DownloadStatus parse(int? code) {
+    if (code == null) {
+      return DownloadStatus.downloading;
+    }
+    for (var status in DownloadStatus.values) {
+      if (status.code == code) {
+        return status;
+      }
+    }
+    return DownloadStatus.downloading;
+  }
+}
+
 class FileDownloadRecord {
   int id = -1;
 
@@ -20,11 +53,17 @@ class FileDownloadRecord {
   /// 文件已下载大小
   int downloadBytes = 0;
 
+  /// 下载状态
+  DownloadStatus status = DownloadStatus.downloading;
+
   /// 是否下载完成
-  bool complete = false;
+  bool get isDone => status == DownloadStatus.done;
 
   /// 是否处于下载中
-  bool isDownloading = false;
+  bool get isDownloading => status == DownloadStatus.downloading;
+
+  /// 是否下载失败
+  bool get isFailed => status == DownloadStatus.failed;
 
   FileDownloadRecord();
 
@@ -37,7 +76,7 @@ class FileDownloadRecord {
         localPath = map['local_path'] ?? '',
         fileBytes = map['file_bytes'] ?? '',
         downloadBytes = map['download_bytes'] ?? 0,
-        complete = map['complete'] == 1;
+        status = DownloadStatusHelper.parse(map['status']);
 }
 
 abstract class FileDownloadDB {
@@ -72,13 +111,13 @@ abstract class FileDownloadDB {
   }
 
   Future<void> updateDownload({
-    required String fileUrl,
+    required int id,
     required int downloadBytes,
     required int fileBytes,
-    required bool complete,
+    required DownloadStatus status,
   }) async {}
 
-  Future<void> delete(String fileUrl) async {}
+  Future<void> delete(int id) async {}
 }
 
 class _EmptyFileDownloadDB extends FileDownloadDB {}
@@ -99,7 +138,7 @@ class FileDownloadDBImpl extends FileDownloadDB {
     required String localPath,
     required int fileBytes,
     required int downloadBytes,
-    required bool complete,
+    required DownloadStatus status,
   }) async {
     final db = await _obtainDatabase();
     await db.insert(
@@ -110,7 +149,7 @@ class FileDownloadDBImpl extends FileDownloadDB {
         'local_path': localPath,
         'file_bytes': fileBytes,
         'download_bytes': downloadBytes,
-        'complete': complete ? 1 : 0,
+        'status': status.code,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -139,10 +178,10 @@ class FileDownloadDBImpl extends FileDownloadDB {
   }
 
   Future<void> _update({
-    required String fileUrl,
+    required int id,
     required int downloadBytes,
     required int fileBytes,
-    required bool complete,
+    required DownloadStatus status,
   }) async {
     final db = await _obtainDatabase();
     await db.update(
@@ -150,19 +189,19 @@ class FileDownloadDBImpl extends FileDownloadDB {
       {
         'download_bytes': downloadBytes,
         'file_bytes': fileBytes,
-        'complete': complete ? 1 : 0,
+        'status': status.code,
       },
-      where: 'file_url = ?',
-      whereArgs: [fileUrl],
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 
-  Future<void> _delete({required String fileUrl}) async {
+  Future<void> _delete({required int id}) async {
     final db = await _obtainDatabase();
     await db.delete(
       tableName,
-      where: 'file_url = ?',
-      whereArgs: [fileUrl],
+      where: 'id = ?',
+      whereArgs: [id],
     );
   }
 
@@ -185,15 +224,20 @@ class FileDownloadDBImpl extends FileDownloadDB {
     required String localPath,
     required int fileBytes,
   }) async {
+    FileDownloadRecord? record = await _query(fileUrl: fileUrl);
+    if (record != null) {
+      // 已存在下载记录
+      return record;
+    }
     await _insert(
       fileName: fileName,
       fileUrl: fileUrl,
       localPath: localPath,
       fileBytes: fileBytes,
       downloadBytes: 0,
-      complete: false,
+      status: DownloadStatus.downloading,
     );
-    FileDownloadRecord? record = await _query(fileUrl: fileUrl);
+    record = await _query(fileUrl: fileUrl);
     if (record == null) {
       throw Exception(
           'insert failed: fileName=$fileName,fileUrl=$fileUrl,localPath=$localPath,fileBytes=$fileBytes');
@@ -203,21 +247,21 @@ class FileDownloadDBImpl extends FileDownloadDB {
 
   @override
   Future<void> updateDownload({
-    required String fileUrl,
+    required int id,
     required int downloadBytes,
     required int fileBytes,
-    required bool complete,
+    required DownloadStatus status,
   }) async {
     await _update(
-      fileUrl: fileUrl,
+      id: id,
       downloadBytes: downloadBytes,
       fileBytes: fileBytes,
-      complete: complete,
+      status: status,
     );
   }
 
   @override
-  Future<void> delete(String fileUrl) async {
-    await _delete(fileUrl: fileUrl);
+  Future<void> delete(int id) async {
+    await _delete(id: id);
   }
 }
