@@ -63,25 +63,36 @@ class MyApp extends StatelessWidget {
       onGenerateRoute: (RouteSettings settings) {
         String routeName = settings.name ?? '';
         if (routeName == RemoteFilesPage.routeName) {
-          return MaterialPageRoute(
-            builder: (context) {
-              return RemoteFilesPage(
-                url: settings.arguments as String,
-              );
-            },
-            settings: settings,
-          );
+          String? url = settings.arguments as String?;
+          if (url != null) {
+            return MaterialPageRoute(
+              builder: (context) {
+                return RemoteFilesPage(
+                  url: url,
+                );
+              },
+              settings: settings,
+            );
+          }
         } else if (routeName == VideoPlayerPage.routeName) {
-          return MaterialPageRoute(
-            builder: (context) {
-              return VideoPlayerPage(
-                videoUrl: settings.arguments as String,
-              );
-            },
-            settings: settings,
-          );
+          String? url = settings.arguments as String?;
+          if (url != null) {
+            return MaterialPageRoute(
+              builder: (context) {
+                return VideoPlayerPage(
+                  videoUrl: url,
+                );
+              },
+              settings: settings,
+            );
+          }
         }
-        return null;
+        return MaterialPageRoute(
+          builder: (context) {
+            return const MainPage();
+          },
+          settings: settings,
+        );
       },
     );
   }

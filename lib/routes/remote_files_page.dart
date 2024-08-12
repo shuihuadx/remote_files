@@ -450,7 +450,6 @@ class FileItem extends StatelessWidget {
                           (fileType == FileType.video ||
                               fileType == FileType.audio ||
                               fileType == FileType.image),
-                      // TODO web通过浏览器下载文件
                       enableDownload: !isDir && !App.isWeb && !existDownloadRecord,
                     );
                   },

@@ -26,8 +26,8 @@ class FileClickHandle {
 
     if (isVideoFile && useInnerPlayer) {
       // 内置播放器, 仅支持 Web|Android|iOS|macOS 平台
-      if (App.isWeb || App.isAndroid || App.isIOS || App.isMacOS) {
-        if (App.isWeb || localPath == null) {
+      if (App.isAndroid || App.isIOS || App.isMacOS) {
+        if (localPath == null) {
           // 使用远端地址
           Navigator.of(context).pushNamed(
             VideoPlayerPage.routeName,
@@ -74,12 +74,15 @@ class FileClickHandle {
     }
 
     if (!await launchUrl(Uri.parse(fileUrl))) {
-      SnackUtils.showSnack(
-        context,
-        message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 2),
-      );
+      // 当前为web端时, launchUrl 会返回false, 实际上是成功的
+      if (!App.isWeb) {
+        SnackUtils.showSnack(
+          context,
+          message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        );
+      }
     }
   }
 }
