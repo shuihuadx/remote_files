@@ -10,13 +10,8 @@ import 'package:remote_files/network/remote_files_fetcher.dart';
 
 FileDownloadManager fileDownloadManager = FileDownloadManager._();
 
-typedef ProgressCallback = void Function(int downloadBytes, int totalBytes);
-
 class FileDownloadStatus {
-  /// 是否处于下载中
-  bool isDownloading = false;
-
-  ProgressCallback? progressCallback;
+  Function()? onUpdate;
   CancelToken? cancelToken;
   FileDownloadRecord fileDownloadRecord;
 
@@ -35,6 +30,10 @@ class FileDownloadManager {
     for (var item in list) {
       _map[item.fileUrl] = FileDownloadStatus(fileDownloadRecord: item);
     }
+  }
+
+  FileDownloadStatus? get(String url) {
+    return _map[url];
   }
 
   List<FileDownloadStatus> getAll() {
@@ -80,28 +79,38 @@ class FileDownloadManager {
       return;
     }
     // 先取消下载
-    cancel(fileUrl: fileUrl);
+    pause(fileUrl: fileUrl);
     FileDownloadRecord fileDownloadRecord = fileDownloadStatus.fileDownloadRecord;
-    // 删除数据库中的记录
-    FileDownloadDB.instance.delete(fileUrl);
     // 删除文件
     File file = File(fileDownloadRecord.localPath);
     file.delete();
+    // 删除数据库中的记录
+    FileDownloadDB.instance.delete(fileDownloadRecord.id);
     // 移除记录
     _map.remove(fileUrl);
   }
 
-  /// 取消下载
-  void cancel({
+  /// 暂停下载
+  void pause({
     required String fileUrl,
   }) {
     FileDownloadStatus? fileDownloadStatus = _map[fileUrl];
-    if (fileDownloadStatus == null || fileDownloadStatus.fileDownloadRecord.complete) {
+    if (fileDownloadStatus == null || fileDownloadStatus.fileDownloadRecord.isDone) {
       return;
     }
-    fileDownloadStatus.isDownloading = false;
+    FileDownloadRecord downloadRecord = fileDownloadStatus.fileDownloadRecord;
+
+    downloadRecord.status = DownloadStatus.pause;
     fileDownloadStatus.cancelToken?.cancel();
     fileDownloadStatus.cancelToken = null;
+
+    FileDownloadDB.instance.updateDownload(
+      id: downloadRecord.id,
+      downloadBytes: downloadRecord.downloadBytes,
+      fileBytes: downloadRecord.fileBytes,
+      status: DownloadStatus.pause,
+    );
+    fileDownloadStatus.onUpdate?.call();
   }
 
   /// 开始下载或恢复下载
@@ -125,7 +134,8 @@ class FileDownloadManager {
       await _download(fileDownloadStatus);
     } else {
       // 下载记录已存在
-      if (fileDownloadStatus.isDownloading || fileDownloadStatus.fileDownloadRecord.complete) {
+      if (fileDownloadStatus.fileDownloadRecord.isDownloading ||
+          fileDownloadStatus.fileDownloadRecord.isDone) {
         // 下载中, 或者已下载完成
         return;
       }
@@ -135,65 +145,78 @@ class FileDownloadManager {
   }
 
   Future<void> _download(FileDownloadStatus fileDownloadStatus) async {
+    FileDownloadRecord downloadRecord = fileDownloadStatus.fileDownloadRecord;
     CancelToken cancelToken = CancelToken();
     fileDownloadStatus.cancelToken = cancelToken;
-    fileDownloadStatus.isDownloading = true;
+    downloadRecord.status = DownloadStatus.downloading;
 
-    String fileUrl = fileDownloadStatus.fileDownloadRecord.fileUrl;
-    String localPath = fileDownloadStatus.fileDownloadRecord.localPath;
+    String fileUrl = downloadRecord.fileUrl;
+    String localPath = downloadRecord.localPath;
     try {
       int lastReceived = 0;
       int fileBytes = -1;
       await remoteFilesFetcher.downloadFile(
-        fileUrl: fileUrl,
-        localPath: localPath,
-        cancelToken: cancelToken,
-        onReceiveProgress: (int received, int total) {
-          fileBytes = total;
-          fileDownloadStatus.fileDownloadRecord.downloadBytes = received;
-          fileDownloadStatus.fileDownloadRecord.fileBytes = total;
-          fileDownloadStatus.progressCallback?.call(received, total);
-          // 防止数据库更新太过频繁, 这里做一下限制
-          int diff = received - lastReceived;
-          if (received == total || (diff > 1024 * 1024 && diff > total / 100)) {
-            lastReceived = received;
+          fileUrl: fileUrl,
+          localPath: localPath,
+          cancelToken: cancelToken,
+          onReceiveProgress: (int received, int total) {
+            fileBytes = total;
+            downloadRecord.downloadBytes = received;
+            downloadRecord.fileBytes = total;
+            // 防止更新太过频繁, 这里做一下限制
+            int diff = received - lastReceived;
+            if (received == total || (diff > 1024 * 1024 && diff > total / 100)) {
+              lastReceived = received;
+              FileDownloadDB.instance.updateDownload(
+                id: downloadRecord.id,
+                downloadBytes: received,
+                fileBytes: total,
+                status: DownloadStatus.downloading,
+              );
+              fileDownloadStatus.onUpdate?.call();
+            }
+          },
+          onDone: () {
+            File file = File(localPath);
+            if (file.existsSync()) {
+              fileBytes = file.lengthSync();
+            }
+
+            // 下载完成
+            fileDownloadStatus.cancelToken = null;
+            downloadRecord.downloadBytes = fileBytes;
+            fileDownloadStatus.onUpdate = null;
+            downloadRecord.status = DownloadStatus.done;
+
             FileDownloadDB.instance.updateDownload(
-              fileUrl: fileUrl,
-              downloadBytes: received,
-              fileBytes: total,
-              complete: false,
+              id: downloadRecord.id,
+              downloadBytes: fileBytes,
+              fileBytes: fileBytes,
+              status: DownloadStatus.done,
             );
-          }
-        },
-        onDone: () {
-          File file = File(localPath);
-          if (file.existsSync()) {
-            fileBytes = file.lengthSync();
-          }
 
-          // 下载完成
-          fileDownloadStatus.isDownloading = false;
-          fileDownloadStatus.cancelToken = null;
-          fileDownloadStatus.fileDownloadRecord.downloadBytes = fileBytes;
-          fileDownloadStatus.progressCallback?.call(fileBytes, fileBytes);
-          fileDownloadStatus.progressCallback = null;
-
-          fileDownloadStatus.fileDownloadRecord.complete = true;
-          fileDownloadStatus.fileDownloadRecord.complete = true;
-
-          FileDownloadDB.instance.updateDownload(
-            fileUrl: fileUrl,
-            downloadBytes: fileBytes,
-            fileBytes: fileBytes,
-            complete: true,
-          );
-        },
-      );
+            fileDownloadStatus.onUpdate?.call();
+          },
+          onFailed: (e) {
+            _onDownloadFailed(fileDownloadStatus);
+          });
     } catch (e) {
-      // TODO 下载出错时，需要记录并显示出来
-      // 网络错误, 或者下载被取消
-      fileDownloadStatus.isDownloading = false;
-      fileDownloadStatus.cancelToken = null;
+      _onDownloadFailed(fileDownloadStatus);
     }
+  }
+
+  void _onDownloadFailed(FileDownloadStatus fileDownloadStatus) {
+    fileDownloadStatus.cancelToken = null;
+    FileDownloadRecord downloadRecord = fileDownloadStatus.fileDownloadRecord;
+    downloadRecord.status = DownloadStatus.failed;
+
+    FileDownloadDB.instance.updateDownload(
+      id: downloadRecord.id,
+      downloadBytes: downloadRecord.downloadBytes,
+      fileBytes: downloadRecord.fileBytes,
+      status: DownloadStatus.failed,
+    );
+
+    fileDownloadStatus.onUpdate?.call();
   }
 }

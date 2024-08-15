@@ -122,7 +122,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           if (position == null) {
             return;
           }
-          if (arrowRightTimestamp - timestamp < 500) {
+          if (timestamp - arrowRightTimestamp < 500) {
             arrowRightCount++;
           } else {
             arrowRightCount = 1;
@@ -136,7 +136,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
           if (position == null) {
             return;
           }
-          if (arrowLeftTimestamp - timestamp < 500) {
+          if (timestamp - arrowLeftTimestamp < 500) {
             arrowLeftCount++;
           } else {
             arrowLeftCount = 1;

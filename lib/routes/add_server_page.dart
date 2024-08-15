@@ -151,18 +151,18 @@ class _AddServerPageState extends State<AddServerPage> {
 
   void onKeyEvent(KeyEvent keyEvent) async {
     if (keyEvent is KeyDownEvent) {
-      if (keyEvent.physicalKey == PhysicalKeyboardKey.arrowDown ||
-          keyEvent.physicalKey == PhysicalKeyboardKey.arrowUp) {
+      if (keyEvent.logicalKey == LogicalKeyboardKey.arrowDown ||
+          keyEvent.logicalKey == LogicalKeyboardKey.arrowUp) {
         FocusNode? currentFocusNode;
         FocusNode? nextFocusNode;
-        if (keyEvent.physicalKey == PhysicalKeyboardKey.arrowDown) {
+        if (keyEvent.logicalKey == LogicalKeyboardKey.arrowDown) {
           currentFocusNode = focusedIndex >= 0 ? focus[focusedIndex] : null;
           focusedIndex++;
           if (focusedIndex >= focus.length) {
             focusedIndex = 0;
           }
           nextFocusNode = focus[focusedIndex];
-        } else if (keyEvent.physicalKey == PhysicalKeyboardKey.arrowUp) {
+        } else if (keyEvent.logicalKey == LogicalKeyboardKey.arrowUp) {
           currentFocusNode = focusedIndex >= 0 ? focus[focusedIndex] : null;
           focusedIndex--;
           if (focusedIndex < 0) {

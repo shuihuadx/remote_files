@@ -2,16 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
+import 'package:remote_files/data/db/file_download_record.dart';
 import 'package:remote_files/data/file_download_manager.dart';
-import 'package:remote_files/method_channel/remote_file_method_channel.dart';
-import 'package:remote_files/routes/video_player_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/dlna_utils.dart';
+import 'package:remote_files/utils/file_click_handle.dart';
 import 'package:remote_files/utils/file_utils.dart';
-import 'package:remote_files/utils/process_helper.dart';
 import 'package:remote_files/utils/snack_utils.dart';
 import 'package:remote_files/widgets/dlna_devices_widget.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 class DownloadManagerPage extends StatefulWidget {
   static String get routeName => 'download_manager_page';
@@ -55,69 +53,26 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
           style: TextStyle(fontSize: 18, color: Colors.white),
         ),
       ),
-      body: ListView.separated(
+      body: ListView.builder(
         itemBuilder: (BuildContext context, int index) {
           FileDownloadStatus item = data[index];
           String fileName = item.fileDownloadRecord.fileName;
-          String localPath = item.fileDownloadRecord.localPath;
+          String fileUrl = item.fileDownloadRecord.fileUrl;
           return InkWell(
             focusColor: Theme.of(context).colorScheme.primaryContainer,
             onTap: () async {
-              if (!item.fileDownloadRecord.complete) {
+              if (item.fileDownloadRecord.isDone) {
+                FileClickHandle.handleFileClick(
+                  context: context,
+                  fileName: fileName,
+                  fileUrl: fileUrl,
+                );
+              } else {
                 SnackUtils.showSnack(
                   context,
                   message: '下载未完成',
                   backgroundColor: Theme.of(context).primaryColor,
                 );
-                return;
-              }
-              bool isVideoFile = FileUtils.isVideoFile(fileName);
-              if (isVideoFile) {
-                if ((App.isAndroid && configs.useInnerPlayer) || App.isIOS || App.isMacOS) {
-                  // 播放本地视频
-                  Navigator.of(context).pushNamed(
-                    VideoPlayerPage.routeName,
-                    arguments: localPath,
-                  );
-                  return;
-                }
-              }
-              if (App.isWindows && isVideoFile) {
-                String videoPlayerPath = configs.videoPlayerPath;
-                if (videoPlayerPath.isEmpty) {
-                  videoPlayerPath = 'C:/Program Files/Windows Media Player/wmplayer.exe';
-                }
-                ProcessHelper.run(
-                  videoPlayerPath,
-                  args: [localPath],
-                );
-              } else if (App.isAndroid) {
-                try {
-                  await RemoteFileMethodChannel.launchRemoteFile(
-                    fileName: fileName,
-                    url: localPath,
-                  );
-                } catch (e) {
-                  if (mounted) {
-                    SnackUtils.showSnack(
-                      context,
-                      message: isVideoFile ? '调用外部播放器失败, 请尝试使用内置播放器' : '无法打开文件, 请先在设备上安装支持打开此文件的App',
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
-                    );
-                  }
-                }
-              } else {
-                if (!await launchUrl(Uri.file(localPath))) {
-                  if (mounted) {
-                    SnackUtils.showSnack(
-                      context,
-                      message: '无法打开文件, 请先在设备上安装支持打开此文件的App',
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
-                    );
-                  }
-                }
               }
             },
             child: FileItem(
@@ -130,13 +85,6 @@ class _DownloadManagerPageState extends State<DownloadManagerPage> {
                 }
               },
             ),
-          );
-        },
-        separatorBuilder: (BuildContext context, int index) {
-          return const Divider(
-            color: Color(0xFFE5E5E5),
-            indent: 1,
-            height: 0,
           );
         },
         itemCount: data.length,
@@ -196,10 +144,35 @@ class _FileItemState extends State<FileItem> {
     }
   }
 
+  Icon getShowIcon(DownloadStatus status) {
+    switch (status) {
+      case DownloadStatus.downloading:
+        return const Icon(
+          Icons.pause,
+          color: Colors.grey,
+        );
+      case DownloadStatus.pause:
+        return const Icon(
+          Icons.download,
+          color: Colors.grey,
+        );
+      case DownloadStatus.failed:
+        return const Icon(
+          Icons.error_outline,
+          color: Colors.red,
+        );
+      default:
+        return const Icon(
+          Icons.check,
+          color: Colors.grey,
+        );
+    }
+  }
+
   @override
   void initState() {
-    if (!widget.fileDownloadStatus.fileDownloadRecord.complete) {
-      widget.fileDownloadStatus.progressCallback = (int downloadBytes, int totalBytes) {
+    if (!widget.fileDownloadStatus.fileDownloadRecord.isDone) {
+      widget.fileDownloadStatus.onUpdate = () {
         if (mounted) {
           setState(() {});
         }
@@ -211,13 +184,15 @@ class _FileItemState extends State<FileItem> {
   @override
   Widget build(BuildContext context) {
     FileDownloadStatus item = widget.fileDownloadStatus;
-    String fileName = item.fileDownloadRecord.fileName;
-    String fileUrl = item.fileDownloadRecord.fileUrl;
-    bool isComplete = item.fileDownloadRecord.complete;
-    double fileSize = item.fileDownloadRecord.fileBytes.toDouble();
-    double progress = isComplete
-        ? 1
-        : item.fileDownloadRecord.downloadBytes.toDouble() / (fileSize == 0 ? 1 : fileSize);
+    FileDownloadRecord downloadRecord = item.fileDownloadRecord;
+    String fileName = downloadRecord.fileName;
+    String fileUrl = downloadRecord.fileUrl;
+    bool isDone = downloadRecord.isDone;
+    double fileSize = downloadRecord.fileBytes.toDouble();
+
+    double progress =
+        isDone ? 1 : downloadRecord.downloadBytes.toDouble() / (fileSize == 0 ? 1 : fileSize);
+
     return SizedBox(
       height: 64.0,
       child: Column(
@@ -270,6 +245,26 @@ class _FileItemState extends State<FileItem> {
                     ),
                   ),
                 ),
+                Visibility(
+                  visible: !downloadRecord.isDone,
+                  child: IconButton(
+                    onPressed: () {
+                      switch (downloadRecord.status) {
+                        case DownloadStatus.downloading:
+                          fileDownloadManager.pause(fileUrl: fileUrl);
+                          break;
+                        case DownloadStatus.pause:
+                        case DownloadStatus.failed:
+                          fileDownloadManager.startDownload(fileName: fileName, fileUrl: fileUrl);
+                          break;
+                        default:
+                          break;
+                      }
+                      setState(() {});
+                    },
+                    icon: getShowIcon(downloadRecord.status),
+                  ),
+                ),
                 GestureDetector(
                   onTapDown: (TapDownDetails details) async {
                     FileType fileType = FileUtils.getFileType(fileName);
@@ -280,9 +275,11 @@ class _FileItemState extends State<FileItem> {
                         details.globalPosition.dx,
                         details.globalPosition.dy,
                       ),
-                      enableDLNA: !App.isWeb&&(fileType == FileType.video ||
-                          fileType == FileType.audio ||
-                          fileType == FileType.image),
+                      enableDLNA: !App.isWeb &&
+                          !(await App.isAndroidTv()) &&
+                          (fileType == FileType.video ||
+                              fileType == FileType.audio ||
+                              fileType == FileType.image),
                     );
                     if (value == 3) {
                       widget.onDelete.call();
@@ -290,7 +287,12 @@ class _FileItemState extends State<FileItem> {
                   },
                   child: Container(
                     color: Colors.transparent,
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.only(
+                      left: 8,
+                      top: 12,
+                      right: 12,
+                      bottom: 12,
+                    ),
                     child: const Icon(
                       Icons.more_vert,
                       color: Colors.grey,
@@ -302,13 +304,17 @@ class _FileItemState extends State<FileItem> {
             ),
           ),
           Visibility(
-            visible: !isComplete,
+            visible: !isDone,
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              child: LinearProgressIndicator(
-                backgroundColor: Colors.grey[200],
-                valueColor: AlwaysStoppedAnimation(Theme.of(context).primaryColor),
-                value: progress,
+              child: SizedBox(
+                height: 4,
+                child: LinearProgressIndicator(
+                  backgroundColor: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(2),
+                  valueColor: AlwaysStoppedAnimation(Theme.of(context).primaryColor),
+                  value: progress,
+                ),
               ),
             ),
           )
@@ -366,17 +372,17 @@ class _FileItemState extends State<FileItem> {
         );
       },
     ));
-    if (!fileDownloadStatus.fileDownloadRecord.complete) {
-      if (fileDownloadStatus.isDownloading) {
+    if (!fileDownloadStatus.fileDownloadRecord.isDone) {
+      if (fileDownloadStatus.fileDownloadRecord.isDownloading) {
         menuItems.add(PopupMenuItem(
           child: const Text('暂停下载'),
           onTap: () {
-            fileDownloadManager.cancel(fileUrl: fileUrl);
+            fileDownloadManager.pause(fileUrl: fileUrl);
           },
         ));
       } else {
         menuItems.add(PopupMenuItem(
-          child: const Text('开始下载'),
+          child: const Text('继续下载'),
           onTap: () {
             fileDownloadManager.startDownload(
               fileName: fileDownloadStatus.fileDownloadRecord.fileName,
