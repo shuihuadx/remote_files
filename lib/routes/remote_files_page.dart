@@ -4,8 +4,9 @@ import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/data/file_download_manager.dart';
 import 'package:remote_files/entities/remote_file.dart';
-import 'package:remote_files/network/remote_files_fetcher.dart';
+import 'package:remote_files/network/network_helper.dart';
 import 'package:remote_files/routes/download_manager_page.dart';
+import 'package:remote_files/routes/file_upload_page.dart';
 import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
@@ -19,6 +20,7 @@ import 'package:remote_files/utils/url_utils.dart';
 import 'package:remote_files/widgets/dlna_devices_widget.dart';
 import 'package:remote_files/widgets/loading_widget.dart';
 import 'package:remote_files/widgets/reloading_widget.dart';
+import 'package:remote_files/widgets/widget_utils.dart';
 
 class RemoteFilesPage extends StatefulWidget {
   static String get routeName => 'remote_files_page';
@@ -78,7 +80,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
 
     if (enableCache) {
       // 本地缓存
-      remoteFilesFetcher.fetchCachedRemoteFiles(url).then((RemoteFilesInfo? value) {
+      networkHelper.fetchCachedRemoteFiles(url).then((RemoteFilesInfo? value) {
         if (mounted && value != null && _status != _Status.success) {
           setState(() {
             remoteFilesInfo = value;
@@ -89,7 +91,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     }
 
     // 远端数据
-    remoteFilesFetcher.fetchRemoteFiles(url).then((RemoteFilesInfo value) {
+    networkHelper.fetchRemoteFiles(url).then((RemoteFilesInfo value) {
       if (mounted) {
         if (_status != _Status.success || remoteFilesInfo.htmlResponse != value.htmlResponse) {
           setState(() {
@@ -251,6 +253,19 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     }
                   },
                 ),
+                App.enableManageRemoteFile
+                    ? ListTile(
+                        title: const Text('文件上传'),
+                        onTap: () {
+                          // 文件上传
+                          if (mounted) {
+                            Scaffold.of(context).closeDrawer();
+
+                            Navigator.of(context).pushNamed(FileUploadPage.routeName);
+                          }
+                        },
+                      )
+                    : const SizedBox(),
               ],
             );
           },
@@ -342,49 +357,6 @@ class FileItem extends StatelessWidget {
     required this.enableDownload,
   });
 
-  Widget getFileIcon(BuildContext context, String fileName) {
-    Color themeColor = Theme.of(context).primaryColor;
-    if (isDir) {
-      return Icon(
-        Icons.folder,
-        color: themeColor,
-        size: 48,
-      );
-    }
-    switch (FileUtils.getFileType(fileName)) {
-      case FileType.video:
-        return Icon(
-          Icons.ondemand_video,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.audio:
-        return Icon(
-          Icons.music_note,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.compress:
-        return Icon(
-          Icons.folder_zip,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.image:
-        return Icon(
-          Icons.image,
-          color: themeColor,
-          size: 48,
-        );
-      default:
-        return Icon(
-          Icons.insert_drive_file,
-          color: themeColor,
-          size: 48,
-        );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
@@ -395,7 +367,11 @@ class FileItem extends StatelessWidget {
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.only(left: 12),
-            child: getFileIcon(context, fileName),
+            child: WidgetUtils.getFileIcon(
+              context: context,
+              fileName: fileName,
+              isDir: isDir,
+            ),
           ),
           Expanded(
             child: Row(
@@ -459,6 +435,7 @@ class FileItem extends StatelessWidget {
                               fileType == FileType.audio ||
                               fileType == FileType.image),
                       enableDownload: !isDir && enableDownload && !existDownloadRecord,
+                      enableDelete: App.enableManageRemoteFile,
                     );
                   },
                   child: Container(
@@ -485,6 +462,7 @@ class FileItem extends StatelessWidget {
     required Offset position,
     bool enableDLNA = false,
     bool enableDownload = false,
+    bool enableDelete = false,
   }) async {
     List<PopupMenuItem> menuItems = [];
     if (enableDLNA) {
@@ -547,6 +525,32 @@ class FileItem extends StatelessWidget {
         );
       },
     ));
+
+    if (enableDelete) {
+      menuItems.add(PopupMenuItem(
+        onTap: () async {
+          String hostServerUrl = Configs.getInstanceSync().currentServerUrl;
+          try {
+            await networkHelper.deleteRemoteFile(
+              remotePath: url.substring(hostServerUrl.length),
+              hostServerUrl: hostServerUrl,
+            );
+            SnackUtils.showSnack(
+              context,
+              message: '文件已删除',
+              backgroundColor: Theme.of(context).primaryColor,
+            );
+          } on Exception catch (_) {
+            SnackUtils.showSnack(
+              context,
+              message: '文件删除失败',
+              backgroundColor: Colors.red,
+            );
+          }
+        },
+        child: const Text('删除'),
+      ));
+    }
 
     await showMenu(
       context: context,
