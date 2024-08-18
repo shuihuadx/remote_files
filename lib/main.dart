@@ -59,7 +59,6 @@ class MyApp extends StatelessWidget {
         VideoPlayerSettingsPage.routeName: (context) => const VideoPlayerSettingsPage(),
         ServerListPage.routeName: (context) => const ServerListPage(),
         DownloadManagerPage.routeName: (context) => const DownloadManagerPage(),
-        FileUploadPage.routeName: (context) => const FileUploadPage(),
         '/': (context) => const MainPage(),
       },
       onGenerateRoute: (RouteSettings settings) {
@@ -88,6 +87,16 @@ class MyApp extends StatelessWidget {
               settings: settings,
             );
           }
+        } else if (routeName == FileUploadPage.routeName) {
+          String? remotePath = settings.arguments as String?;
+          return MaterialPageRoute(
+            builder: (context) {
+              return FileUploadPage(
+                remotePath: remotePath,
+              );
+            },
+            settings: settings,
+          );
         }
         return MaterialPageRoute(
           builder: (context) {

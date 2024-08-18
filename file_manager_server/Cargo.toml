@@ -8,3 +8,4 @@ actix-web = "4.9.0"
 actix-multipart = "0.7.2"
 futures-util = "0.3.30"
 tokio = { version = "1.39.2", features = ["full"] }
+percent-encoding = "2.3.1"

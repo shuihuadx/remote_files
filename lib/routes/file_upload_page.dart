@@ -4,6 +4,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:remote_files/data/file_upload_task.dart';
 import 'package:remote_files/theme/app_theme.dart';
+import 'package:remote_files/utils/snack_utils.dart';
 import 'package:remote_files/widgets/loading_btn.dart';
 
 FileUploadTask? currentFileUploadTask;
@@ -11,13 +12,19 @@ FileUploadTask? currentFileUploadTask;
 class FileUploadPage extends StatefulWidget {
   static String get routeName => 'file_upload_page';
 
-  const FileUploadPage({super.key});
+  final String? remotePath;
+
+  const FileUploadPage({
+    super.key,
+    this.remotePath,
+  });
 
   @override
   State<FileUploadPage> createState() => _FileUploadPageState();
 }
 
 class _FileUploadPageState extends State<FileUploadPage> {
+  String remotePath = '';
   String uploadDesc = '';
   double uploadProcess = 0;
   Exception? exception;
@@ -45,18 +52,42 @@ class _FileUploadPageState extends State<FileUploadPage> {
     };
     fileUploadTask.onCancel = () {
       if (mounted) {
-        currentFileUploadTask = null;
+        setState(() {
+          currentFileUploadTask = null;
+        });
+        SnackUtils.showSnack(
+          context,
+          message: '已取消',
+          backgroundColor: Theme.of(context).primaryColor,
+          duration: const Duration(seconds: 2),
+        );
       }
     };
     fileUploadTask.onFailed = (e) {
       if (mounted) {
-        exception = e;
-        currentFileUploadTask = null;
+        setState(() {
+          exception = e;
+          currentFileUploadTask = null;
+        });
+        SnackUtils.showSnack(
+          context,
+          message: '上传失败',
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        );
       }
     };
     fileUploadTask.onDone = () {
       if (mounted) {
-        currentFileUploadTask = null;
+        setState(() {
+          currentFileUploadTask = null;
+        });
+        SnackUtils.showSnack(
+          context,
+          message: '上传成功',
+          backgroundColor: Theme.of(context).primaryColor,
+          duration: const Duration(seconds: 2),
+        );
       }
     };
   }
@@ -66,6 +97,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
     if (currentFileUploadTask != null) {
       _setUploadTaskCallback(currentFileUploadTask!);
     }
+    remotePath = widget.remotePath ?? '';
     super.initState();
   }
 
@@ -121,7 +153,10 @@ class _FileUploadPageState extends State<FileUploadPage> {
                   return;
                 }
                 // TODO 选中文件夹的场景, 改成从文件目录页启动文件上传页, 并传入文件目录页路径
-                currentFileUploadTask = FileUploadTask.build(filePaths:paths);
+                currentFileUploadTask = FileUploadTask.build(
+                  filePaths: paths,
+                  remotePath: remotePath,
+                );
                 currentFileUploadTask?.startUpload();
                 _setUploadTaskCallback(currentFileUploadTask!);
                 setState(() {
@@ -137,7 +172,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
                     FilePickerResult? result = await FilePicker.platform.pickFiles();
                     if (result != null) {
                       List<String?> selectPaths =
-                      result.files.map((file) => file.path).toList(growable: false);
+                          result.files.map((file) => file.path).toList(growable: false);
                       List<String> paths = [];
                       for (var path in selectPaths) {
                         if (path != null) {
@@ -148,7 +183,10 @@ class _FileUploadPageState extends State<FileUploadPage> {
                         return;
                       }
                       // TODO 选中文件夹的场景, 改成从文件目录页启动文件上传页, 并传入文件目录页路径
-                      currentFileUploadTask = FileUploadTask.build(filePaths:paths);
+                      currentFileUploadTask = FileUploadTask.build(
+                        filePaths: paths,
+                        remotePath: remotePath,
+                      );
                       currentFileUploadTask?.startUpload();
                       _setUploadTaskCallback(currentFileUploadTask!);
                       setState(() {

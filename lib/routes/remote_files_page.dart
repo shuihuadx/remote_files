@@ -51,6 +51,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     htmlResponse: '',
   );
   bool enableDownload = !App.isWeb;
+  bool enableFileManager = true;
   late String url;
   bool isRootUrl = false;
   late String title;
@@ -111,16 +112,20 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     });
   }
 
-  void _initEnableDownload() async {
+  void _initConfigByAndroidTv() async {
     if (await App.isAndroidTv()) {
       enableDownload = false;
+      enableFileManager = false;
+    }
+    if (mounted) {
+      setState(() {});
     }
   }
 
   @override
   void initState() {
     configs = Configs.getInstanceSync();
-    _initEnableDownload();
+    _initConfigByAndroidTv();
 
     url = widget.url;
     isRootUrl = configs.currentServerUrl == widget.url;
@@ -178,6 +183,18 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
           style: const TextStyle(fontSize: 18, color: Colors.white),
         ),
       ),
+      floatingActionButton: enableFileManager
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed(
+                  FileUploadPage.routeName,
+                  arguments: url.substring(configs.currentServerUrl.length),
+                );
+              },
+              tooltip: 'upload',
+              child: const Icon(Icons.upload),
+            )
+          : null,
       drawer: Drawer(
         child: Builder(
           builder: (context) {
@@ -253,19 +270,6 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                     }
                   },
                 ),
-                App.enableManageRemoteFile
-                    ? ListTile(
-                        title: const Text('文件上传'),
-                        onTap: () {
-                          // 文件上传
-                          if (mounted) {
-                            Scaffold.of(context).closeDrawer();
-
-                            Navigator.of(context).pushNamed(FileUploadPage.routeName);
-                          }
-                        },
-                      )
-                    : const SizedBox(),
               ],
             );
           },
@@ -335,9 +339,9 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
               url: remoteFile.url,
               isDir: remoteFile.isDir,
               enableDownload: enableDownload,
-              onDelete: (){
+              onDelete: () {
                 remoteFilesInfo.remoteFiles.removeAt(index);
-                if(mounted){
+                if (mounted) {
                   setState(() {});
                 }
               },
@@ -430,24 +434,23 @@ class FileItem extends StatelessWidget {
                     // 是否已经存在下载记录了
                     bool existDownloadRecord = fileDownloadManager.get(url) != null;
                     showMoreMenus(
-                      context: context,
-                      url: url,
-                      position: Offset(
-                        details.globalPosition.dx,
-                        details.globalPosition.dy,
-                      ),
-                      enableDLNA: !App.isWeb &&
-                          !(await App.isAndroidTv()) &&
-                          !isDir &&
-                          (fileType == FileType.video ||
-                              fileType == FileType.audio ||
-                              fileType == FileType.image),
-                      enableDownload: !isDir && enableDownload && !existDownloadRecord,
-                      enableDelete: App.enableManageRemoteFile,
-                      onDelete: (){
-                        onDelete?.call();
-                      }
-                    );
+                        context: context,
+                        url: url,
+                        position: Offset(
+                          details.globalPosition.dx,
+                          details.globalPosition.dy,
+                        ),
+                        enableDLNA: !App.isWeb &&
+                            !(await App.isAndroidTv()) &&
+                            !isDir &&
+                            (fileType == FileType.video ||
+                                fileType == FileType.audio ||
+                                fileType == FileType.image),
+                        enableDownload: !isDir && enableDownload && !existDownloadRecord,
+                        enableDelete: !await App.isAndroidTv(),
+                        onDelete: () {
+                          onDelete?.call();
+                        });
                   },
                   child: Container(
                     color: Colors.transparent,

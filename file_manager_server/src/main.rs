@@ -1,6 +1,7 @@
 use actix_multipart::Multipart;
 use actix_web::{web, App, HttpRequest, HttpResponse, HttpServer, Responder};
 use futures_util::StreamExt as _;
+use percent_encoding::percent_decode_str;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -8,11 +9,7 @@ use std::{env, fs};
 use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 
-// http 请求端口
-// static mut HTTP_PORT: &str = "8080";
 const HTTP_PORT_ARG_KEY: &str = "port";
-// 文件上传目录
-// static mut UPLOAD_DIR: &str = "./files";
 const UPLOAD_DIR_ARG_KEY: &str = "dir";
 
 // 请求成功的响应
@@ -58,7 +55,7 @@ async fn upload_file(
         if filename.is_empty() {
             return HttpResponse::BadRequest().body(RESPONSE_UPLOAD_NO_FILENAME);
         }
-        let path = req.path();
+        let path = percent_decode_str(req.path()).decode_utf8().unwrap();
         let mut path = &path["/upload".len()..];
         if !path.is_empty() {
             if path.starts_with("/") {
@@ -151,7 +148,7 @@ async fn main() -> std::io::Result<()> {
         .get(HTTP_PORT_ARG_KEY)
         .unwrap_or(&"8080".to_string())
         .clone();
-    println!("port:{}",port);
+    println!("port:{}", port);
 
     let dir = Arc::new(
         argmap
@@ -159,7 +156,7 @@ async fn main() -> std::io::Result<()> {
             .unwrap_or(&"./files".to_string())
             .clone(),
     );
-    println!("dir:{}",dir);
+    println!("dir:{}", dir);
 
     HttpServer::new(move || {
         let dir = Arc::clone(&dir);
