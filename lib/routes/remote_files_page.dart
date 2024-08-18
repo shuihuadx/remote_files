@@ -335,6 +335,12 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
               url: remoteFile.url,
               isDir: remoteFile.isDir,
               enableDownload: enableDownload,
+              onDelete: (){
+                remoteFilesInfo.remoteFiles.removeAt(index);
+                if(mounted){
+                  setState(() {});
+                }
+              },
             ),
           );
         },
@@ -348,6 +354,7 @@ class FileItem extends StatelessWidget {
   final String url;
   final bool isDir;
   final bool enableDownload;
+  final Function()? onDelete;
 
   const FileItem({
     super.key,
@@ -355,6 +362,7 @@ class FileItem extends StatelessWidget {
     required this.url,
     required this.isDir,
     required this.enableDownload,
+    this.onDelete,
   });
 
   @override
@@ -436,6 +444,9 @@ class FileItem extends StatelessWidget {
                               fileType == FileType.image),
                       enableDownload: !isDir && enableDownload && !existDownloadRecord,
                       enableDelete: App.enableManageRemoteFile,
+                      onDelete: (){
+                        onDelete?.call();
+                      }
                     );
                   },
                   child: Container(
@@ -463,6 +474,7 @@ class FileItem extends StatelessWidget {
     bool enableDLNA = false,
     bool enableDownload = false,
     bool enableDelete = false,
+    Function()? onDelete,
   }) async {
     List<PopupMenuItem> menuItems = [];
     if (enableDLNA) {
@@ -535,6 +547,7 @@ class FileItem extends StatelessWidget {
               remotePath: url.substring(hostServerUrl.length),
               hostServerUrl: hostServerUrl,
             );
+            onDelete?.call();
             SnackUtils.showSnack(
               context,
               message: '文件已删除',

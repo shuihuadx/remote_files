@@ -4,9 +4,10 @@ import 'package:remote_files/network/network_helper.dart';
 
 class FileUploadTask {
   List<String> filePaths = [];
+  String remotePath = '';
   int pathIndex = 0;
   int sent = 0;
-  int total = 0;
+  int total = 1;
   CancelToken? cancelToken;
   Function(int index, int total)? onNextFileUpload;
   Function(int count, int total)? onUploadProgress;
@@ -16,17 +17,28 @@ class FileUploadTask {
 
   FileUploadTask._();
 
-  static FileUploadTask build(List<String> filePaths) {
+  static FileUploadTask build({
+    required List<String> filePaths,
+    String remotePath = '',
+  }) {
     FileUploadTask uploadTask = FileUploadTask._();
     uploadTask.filePaths = filePaths;
+    uploadTask.remotePath = remotePath;
     return uploadTask;
+  }
+
+  double get progress {
+    if (total <= 0 || sent <= 0) {
+      return 0;
+    }
+    return sent / total.toDouble();
   }
 
   void cancel() {
     cancelToken?.cancel();
   }
 
-  Future<void> startDownload() async {
+  Future<void> startUpload() async {
     if (filePaths.isEmpty) {
       onDone?.call();
       return;
@@ -43,6 +55,7 @@ class FileUploadTask {
         onNextFileUpload?.call(i, filePaths.length);
         await networkHelper.uploadFile(
           filePath: filePaths[i],
+          remotePath: remotePath,
           hostServerUrl: configs.currentServerUrl,
           cancelToken: cancelToken,
           onUploadProgress: (int sent, int total) {

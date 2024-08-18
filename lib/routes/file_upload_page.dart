@@ -23,7 +23,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
   Exception? exception;
 
   void _setUploadTaskCallback(FileUploadTask fileUploadTask) {
-    uploadProcess = fileUploadTask.sent / fileUploadTask.total.toDouble();
+    uploadProcess = fileUploadTask.progress;
     fileUploadTask.onUploadProgress = (int index, int total) {
       if (mounted) {
         uploadDesc = '$index/$total';
@@ -38,7 +38,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
         lastTm = currentTm;
         if (mounted) {
           setState(() {
-            uploadProcess = sent / total.toDouble();
+            uploadProcess = fileUploadTask.progress;
           });
         }
       }
@@ -120,8 +120,9 @@ class _FileUploadPageState extends State<FileUploadPage> {
                 if (paths.isEmpty) {
                   return;
                 }
-                currentFileUploadTask = FileUploadTask.build(paths);
-                currentFileUploadTask?.startDownload();
+                // TODO 选中文件夹的场景, 改成从文件目录页启动文件上传页, 并传入文件目录页路径
+                currentFileUploadTask = FileUploadTask.build(filePaths:paths);
+                currentFileUploadTask?.startUpload();
                 _setUploadTaskCallback(currentFileUploadTask!);
                 setState(() {
                   exception = null;
@@ -146,8 +147,9 @@ class _FileUploadPageState extends State<FileUploadPage> {
                       if (paths.isEmpty) {
                         return;
                       }
-                      currentFileUploadTask = FileUploadTask.build(paths);
-                      currentFileUploadTask?.startDownload();
+                      // TODO 选中文件夹的场景, 改成从文件目录页启动文件上传页, 并传入文件目录页路径
+                      currentFileUploadTask = FileUploadTask.build(filePaths:paths);
+                      currentFileUploadTask?.startUpload();
                       _setUploadTaskCallback(currentFileUploadTask!);
                       setState(() {
                         exception = null;

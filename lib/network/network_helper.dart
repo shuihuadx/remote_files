@@ -139,6 +139,7 @@ class NetworkHelper {
 
   Future<void> uploadFile({
     required String filePath,
+    String? remotePath,
     required String hostServerUrl,
     required CancelToken cancelToken,
     ProgressCallback? onUploadProgress,
@@ -151,7 +152,7 @@ class NetworkHelper {
     int uploadBytes = file.existsSync() ? file.lengthSync() : 0;
     try {
       var response = await dio.post(
-        '${hostServerUrl}upload',
+        '${hostServerUrl}upload/${remotePath??""}',
         data: FormData.fromMap({
           'file': await MultipartFile.fromFile(filePath, filename: path.basename(filePath)),
         }),
@@ -182,7 +183,7 @@ class NetworkHelper {
     required String hostServerUrl,
   }) async {
     var response = await dio.delete(
-      '$hostServerUrl$remotePath',
+      '${hostServerUrl}delete/$remotePath',
     );
     dynamic data = json.decode(response.data);
     String? code = data['code'];

@@ -177,7 +177,7 @@ async fn main() -> std::io::Result<()> {
                     .to(move |path: web::Path<String>| delete_file(path, Arc::clone(&dir2))),
             )
     })
-    .bind(format!("127.0.0.1:{}", port))?
+    .bind(format!("0.0.0.0:{}", port))?
     .run()
     .await
 }
