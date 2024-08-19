@@ -6,7 +6,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:remote_files/app.dart';
 import 'package:remote_files/data/db/file_download_record.dart';
-import 'package:remote_files/network/remote_files_fetcher.dart';
+import 'package:remote_files/network/network_helper.dart';
 
 FileDownloadManager fileDownloadManager = FileDownloadManager._();
 
@@ -153,9 +153,9 @@ class FileDownloadManager {
     String fileUrl = downloadRecord.fileUrl;
     String localPath = downloadRecord.localPath;
     try {
-      int lastReceived = 0;
+      int lastTm = DateTime.now().millisecondsSinceEpoch;
       int fileBytes = -1;
-      await remoteFilesFetcher.downloadFile(
+      await networkHelper.downloadFile(
           fileUrl: fileUrl,
           localPath: localPath,
           cancelToken: cancelToken,
@@ -163,10 +163,10 @@ class FileDownloadManager {
             fileBytes = total;
             downloadRecord.downloadBytes = received;
             downloadRecord.fileBytes = total;
-            // 防止更新太过频繁, 这里做一下限制
-            int diff = received - lastReceived;
-            if (received == total || (diff > 1024 * 1024 && diff > total / 100)) {
-              lastReceived = received;
+            int currentTm = DateTime.now().millisecondsSinceEpoch;
+            // 避免回调过于频繁, 100ms 回调一次
+            if (received == total || currentTm - lastTm > 100) {
+              lastTm = currentTm;
               FileDownloadDB.instance.updateDownload(
                 id: downloadRecord.id,
                 downloadBytes: received,

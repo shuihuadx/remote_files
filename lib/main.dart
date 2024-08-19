@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:remote_files/app.dart';
 import 'package:remote_files/routes/add_server_page.dart';
 import 'package:remote_files/routes/download_manager_page.dart';
+import 'package:remote_files/routes/file_upload_page.dart';
 import 'package:remote_files/routes/main_page.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
 import 'package:remote_files/routes/server_list_page.dart';
@@ -86,6 +87,16 @@ class MyApp extends StatelessWidget {
               settings: settings,
             );
           }
+        } else if (routeName == FileUploadPage.routeName) {
+          String? remotePath = settings.arguments as String?;
+          return MaterialPageRoute(
+            builder: (context) {
+              return FileUploadPage(
+                remotePath: remotePath,
+              );
+            },
+            settings: settings,
+          );
         }
         return MaterialPageRoute(
           builder: (context) {

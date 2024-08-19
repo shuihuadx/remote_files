@@ -55,6 +55,10 @@ dependencies:
   video_player: ^2.9.1
   chewie: ^1.8.3
   device_info_plus: ^10.1.2
+  # desktop_drop: ^0.4.4
+  # desktop_drop 这个库使用的旧版Kotlin, 会导致 Android 端无法编译
+  desktop_drop_for_t: ^0.4.6
+  dotted_border: ^2.1.0
 
 dev_dependencies:
   flutter_test:

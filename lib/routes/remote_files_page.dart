@@ -4,8 +4,9 @@ import 'package:remote_files/app.dart';
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/data/file_download_manager.dart';
 import 'package:remote_files/entities/remote_file.dart';
-import 'package:remote_files/network/remote_files_fetcher.dart';
+import 'package:remote_files/network/network_helper.dart';
 import 'package:remote_files/routes/download_manager_page.dart';
+import 'package:remote_files/routes/file_upload_page.dart';
 import 'package:remote_files/routes/server_list_page.dart';
 import 'package:remote_files/routes/theme_color_settings_page.dart';
 import 'package:remote_files/routes/video_player_settings_page.dart';
@@ -19,6 +20,7 @@ import 'package:remote_files/utils/url_utils.dart';
 import 'package:remote_files/widgets/dlna_devices_widget.dart';
 import 'package:remote_files/widgets/loading_widget.dart';
 import 'package:remote_files/widgets/reloading_widget.dart';
+import 'package:remote_files/widgets/widget_utils.dart';
 
 class RemoteFilesPage extends StatefulWidget {
   static String get routeName => 'remote_files_page';
@@ -49,6 +51,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     htmlResponse: '',
   );
   bool enableDownload = !App.isWeb;
+  bool enableFileManager = true;
   late String url;
   bool isRootUrl = false;
   late String title;
@@ -78,7 +81,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
 
     if (enableCache) {
       // 本地缓存
-      remoteFilesFetcher.fetchCachedRemoteFiles(url).then((RemoteFilesInfo? value) {
+      networkHelper.fetchCachedRemoteFiles(url).then((RemoteFilesInfo? value) {
         if (mounted && value != null && _status != _Status.success) {
           setState(() {
             remoteFilesInfo = value;
@@ -89,7 +92,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     }
 
     // 远端数据
-    remoteFilesFetcher.fetchRemoteFiles(url).then((RemoteFilesInfo value) {
+    networkHelper.fetchRemoteFiles(url).then((RemoteFilesInfo value) {
       if (mounted) {
         if (_status != _Status.success || remoteFilesInfo.htmlResponse != value.htmlResponse) {
           setState(() {
@@ -109,16 +112,20 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
     });
   }
 
-  void _initEnableDownload() async {
+  void _initConfigByAndroidTv() async {
     if (await App.isAndroidTv()) {
       enableDownload = false;
+      enableFileManager = false;
+    }
+    if (mounted) {
+      setState(() {});
     }
   }
 
   @override
   void initState() {
     configs = Configs.getInstanceSync();
-    _initEnableDownload();
+    _initConfigByAndroidTv();
 
     url = widget.url;
     isRootUrl = configs.currentServerUrl == widget.url;
@@ -176,6 +183,18 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
           style: const TextStyle(fontSize: 18, color: Colors.white),
         ),
       ),
+      floatingActionButton: enableFileManager
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.of(context).pushNamed(
+                  FileUploadPage.routeName,
+                  arguments: url.substring(configs.currentServerUrl.length),
+                );
+              },
+              tooltip: 'upload',
+              child: const Icon(Icons.upload),
+            )
+          : null,
       drawer: Drawer(
         child: Builder(
           builder: (context) {
@@ -320,6 +339,12 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
               url: remoteFile.url,
               isDir: remoteFile.isDir,
               enableDownload: enableDownload,
+              onDelete: () {
+                remoteFilesInfo.remoteFiles.removeAt(index);
+                if (mounted) {
+                  setState(() {});
+                }
+              },
             ),
           );
         },
@@ -333,6 +358,7 @@ class FileItem extends StatelessWidget {
   final String url;
   final bool isDir;
   final bool enableDownload;
+  final Function()? onDelete;
 
   const FileItem({
     super.key,
@@ -340,50 +366,8 @@ class FileItem extends StatelessWidget {
     required this.url,
     required this.isDir,
     required this.enableDownload,
+    this.onDelete,
   });
-
-  Widget getFileIcon(BuildContext context, String fileName) {
-    Color themeColor = Theme.of(context).primaryColor;
-    if (isDir) {
-      return Icon(
-        Icons.folder,
-        color: themeColor,
-        size: 48,
-      );
-    }
-    switch (FileUtils.getFileType(fileName)) {
-      case FileType.video:
-        return Icon(
-          Icons.ondemand_video,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.audio:
-        return Icon(
-          Icons.music_note,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.compress:
-        return Icon(
-          Icons.folder_zip,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.image:
-        return Icon(
-          Icons.image,
-          color: themeColor,
-          size: 48,
-        );
-      default:
-        return Icon(
-          Icons.insert_drive_file,
-          color: themeColor,
-          size: 48,
-        );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -395,7 +379,11 @@ class FileItem extends StatelessWidget {
         children: <Widget>[
           Padding(
             padding: const EdgeInsets.only(left: 12),
-            child: getFileIcon(context, fileName),
+            child: WidgetUtils.getFileIcon(
+              context: context,
+              fileName: fileName,
+              isDir: isDir,
+            ),
           ),
           Expanded(
             child: Row(
@@ -446,20 +434,23 @@ class FileItem extends StatelessWidget {
                     // 是否已经存在下载记录了
                     bool existDownloadRecord = fileDownloadManager.get(url) != null;
                     showMoreMenus(
-                      context: context,
-                      url: url,
-                      position: Offset(
-                        details.globalPosition.dx,
-                        details.globalPosition.dy,
-                      ),
-                      enableDLNA: !App.isWeb &&
-                          !(await App.isAndroidTv()) &&
-                          !isDir &&
-                          (fileType == FileType.video ||
-                              fileType == FileType.audio ||
-                              fileType == FileType.image),
-                      enableDownload: !isDir && enableDownload && !existDownloadRecord,
-                    );
+                        context: context,
+                        url: url,
+                        position: Offset(
+                          details.globalPosition.dx,
+                          details.globalPosition.dy,
+                        ),
+                        enableDLNA: !App.isWeb &&
+                            !(await App.isAndroidTv()) &&
+                            !isDir &&
+                            (fileType == FileType.video ||
+                                fileType == FileType.audio ||
+                                fileType == FileType.image),
+                        enableDownload: !isDir && enableDownload && !existDownloadRecord,
+                        enableDelete: !await App.isAndroidTv(),
+                        onDelete: () {
+                          onDelete?.call();
+                        });
                   },
                   child: Container(
                     color: Colors.transparent,
@@ -485,6 +476,8 @@ class FileItem extends StatelessWidget {
     required Offset position,
     bool enableDLNA = false,
     bool enableDownload = false,
+    bool enableDelete = false,
+    Function()? onDelete,
   }) async {
     List<PopupMenuItem> menuItems = [];
     if (enableDLNA) {
@@ -547,6 +540,33 @@ class FileItem extends StatelessWidget {
         );
       },
     ));
+
+    if (enableDelete) {
+      menuItems.add(PopupMenuItem(
+        onTap: () async {
+          String hostServerUrl = Configs.getInstanceSync().currentServerUrl;
+          try {
+            await networkHelper.deleteRemoteFile(
+              remotePath: url.substring(hostServerUrl.length),
+              hostServerUrl: hostServerUrl,
+            );
+            onDelete?.call();
+            SnackUtils.showSnack(
+              context,
+              message: '文件已删除',
+              backgroundColor: Theme.of(context).primaryColor,
+            );
+          } on Exception catch (_) {
+            SnackUtils.showSnack(
+              context,
+              message: '文件删除失败',
+              backgroundColor: Colors.red,
+            );
+          }
+        },
+        child: const Text('删除'),
+      ));
+    }
 
     await showMenu(
       context: context,

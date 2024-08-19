@@ -10,6 +10,7 @@ import 'package:remote_files/utils/file_click_handle.dart';
 import 'package:remote_files/utils/file_utils.dart';
 import 'package:remote_files/utils/snack_utils.dart';
 import 'package:remote_files/widgets/dlna_devices_widget.dart';
+import 'package:remote_files/widgets/widget_utils.dart';
 
 class DownloadManagerPage extends StatefulWidget {
   static String get routeName => 'download_manager_page';
@@ -108,42 +109,6 @@ class FileItem extends StatefulWidget {
 }
 
 class _FileItemState extends State<FileItem> {
-  Widget getFileIcon(BuildContext context, String fileName) {
-    Color themeColor = Theme.of(context).primaryColor;
-    switch (FileUtils.getFileType(fileName)) {
-      case FileType.video:
-        return Icon(
-          Icons.ondemand_video,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.audio:
-        return Icon(
-          Icons.music_note,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.compress:
-        return Icon(
-          Icons.folder_zip,
-          color: themeColor,
-          size: 48,
-        );
-      case FileType.image:
-        return Icon(
-          Icons.image,
-          color: themeColor,
-          size: 48,
-        );
-      default:
-        return Icon(
-          Icons.insert_drive_file,
-          color: themeColor,
-          size: 48,
-        );
-    }
-  }
-
   Icon getShowIcon(DownloadStatus status) {
     switch (status) {
       case DownloadStatus.downloading:
@@ -205,7 +170,11 @@ class _FileItemState extends State<FileItem> {
               children: <Widget>[
                 Padding(
                   padding: const EdgeInsets.only(left: 12),
-                  child: getFileIcon(context, fileName),
+                  child: WidgetUtils.getFileIcon(
+                    context: context,
+                    fileName: fileName,
+                    isDir: false,
+                  ),
                 ),
                 Expanded(
                   child: Container(
