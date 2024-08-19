@@ -9,6 +9,7 @@ import 'package:remote_files/widgets/loading_btn.dart';
 
 FileUploadTask? currentFileUploadTask;
 
+/// TODO 创建文件目录, 并上传文件
 class FileUploadPage extends StatefulWidget {
   static String get routeName => 'file_upload_page';
 
@@ -31,9 +32,12 @@ class _FileUploadPageState extends State<FileUploadPage> {
 
   void _setUploadTaskCallback(FileUploadTask fileUploadTask) {
     uploadProcess = fileUploadTask.progress;
-    fileUploadTask.onUploadProgress = (int index, int total) {
+    fileUploadTask.onNextFileUpload = (int index, int total) {
       if (mounted) {
-        uploadDesc = '$index/$total';
+        setState(() {
+          uploadProcess = 0;
+          uploadDesc = '第 $index/$total 个文件';
+        });
       }
     };
 
@@ -152,13 +156,12 @@ class _FileUploadPageState extends State<FileUploadPage> {
                 if (paths.isEmpty) {
                   return;
                 }
-                // TODO 选中文件夹的场景, 改成从文件目录页启动文件上传页, 并传入文件目录页路径
                 currentFileUploadTask = FileUploadTask.build(
                   filePaths: paths,
                   remotePath: remotePath,
                 );
-                currentFileUploadTask?.startUpload();
                 _setUploadTaskCallback(currentFileUploadTask!);
+                currentFileUploadTask?.startUpload();
                 setState(() {
                   exception = null;
                 });
@@ -182,13 +185,12 @@ class _FileUploadPageState extends State<FileUploadPage> {
                       if (paths.isEmpty) {
                         return;
                       }
-                      // TODO 选中文件夹的场景, 改成从文件目录页启动文件上传页, 并传入文件目录页路径
                       currentFileUploadTask = FileUploadTask.build(
                         filePaths: paths,
                         remotePath: remotePath,
                       );
-                      currentFileUploadTask?.startUpload();
                       _setUploadTaskCallback(currentFileUploadTask!);
+                      currentFileUploadTask?.startUpload();
                       setState(() {
                         exception = null;
                       });
@@ -205,7 +207,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
                           Icon(Icons.file_upload, size: 60, color: Colors.grey),
                           SizedBox(height: 8),
                           Text(
-                            '拖动文件/点击按钮上传',
+                            '拖动文件/点击上传',
                             style: TextStyle(fontSize: 24, color: Colors.grey),
                           ),
                         ],

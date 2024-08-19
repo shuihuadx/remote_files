@@ -52,7 +52,7 @@ class FileUploadTask {
         this.cancelToken = cancelToken;
         bool uploadSuccess = false;
 
-        onNextFileUpload?.call(i, filePaths.length);
+        onNextFileUpload?.call(i + 1, filePaths.length);
         await networkHelper.uploadFile(
           filePath: filePaths[i],
           remotePath: remotePath,
@@ -64,6 +64,7 @@ class FileUploadTask {
             onUploadProgress?.call(sent, total);
           },
           onDone: () {
+            uploadSuccess = true;
             uploadCount++;
           },
           onCancel: () {

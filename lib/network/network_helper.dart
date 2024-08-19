@@ -152,9 +152,12 @@ class NetworkHelper {
     int uploadBytes = file.existsSync() ? file.lengthSync() : 0;
     try {
       var response = await dio.post(
-        '${hostServerUrl}upload/${remotePath??""}',
+        '${hostServerUrl}upload/${remotePath ?? ""}',
         data: FormData.fromMap({
-          'file': await MultipartFile.fromFile(filePath, filename: path.basename(filePath)),
+          'file': await MultipartFile.fromFile(
+            filePath,
+            filename: path.basename(filePath),
+          ),
         }),
         cancelToken: cancelToken,
         onSendProgress: onUploadProgress,
