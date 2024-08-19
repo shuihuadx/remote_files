@@ -1,4 +1,4 @@
-import 'package:desktop_drop/desktop_drop.dart';
+import 'package:desktop_drop_for_t/desktop_drop_for_t.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -199,7 +199,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
                   child: Container(
                     color: Colors.transparent,
                     child: const SizedBox(
-                      width: 400,
+                      width: 300,
                       height: 200,
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -300,6 +300,7 @@ class ProgressLoadingWidget extends StatelessWidget {
           child: CircularProgressIndicator(
             value: progress,
             strokeCap: StrokeCap.round,
+            backgroundColor: Colors.grey.shade300,
           ),
         ),
         Column(

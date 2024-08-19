@@ -6,7 +6,7 @@
 
 #include "generated_plugin_registrant.h"
 
-#include <desktop_drop/desktop_drop_plugin.h>
+#include <desktop_drop_for_t/desktop_drop_plugin.h>
 #include <screen_retriever/screen_retriever_plugin.h>
 #include <url_launcher_windows/url_launcher_windows.h>
 #include <window_manager/window_manager_plugin.h>
