@@ -158,7 +158,7 @@ async fn main() -> std::io::Result<()> {
     );
     println!("dir:{}", dir);
 
-    HttpServer::new(move || {
+    let _ = HttpServer::new(move || {
         let dir = Arc::clone(&dir);
         let dir2 = Arc::clone(&dir);
         App::new()
@@ -176,5 +176,9 @@ async fn main() -> std::io::Result<()> {
     })
     .bind(format!("0.0.0.0:{}", port))?
     .run()
-    .await
+    .await;
+
+    println!("server stop");
+
+    Ok(())
 }
