@@ -64,7 +64,6 @@ class _ThemeColorSettingsPageState extends State<ThemeColorSettingsPage> {
           style: TextStyle(fontSize: 18, color: Colors.white),
         ),
       ),
-      backgroundColor: Colors.white,
       body: Stack(
         clipBehavior: Clip.none,
         children: [

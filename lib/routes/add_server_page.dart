@@ -85,7 +85,6 @@ class _AddServerPageState extends State<AddServerPage> {
             style: TextStyle(fontSize: 18, color: Colors.white),
           ),
         ),
-        backgroundColor: Colors.white,
         body: PopScope(
           canPop: widget.enableBack,
           onPopInvoked: (didPop) {
@@ -351,7 +350,6 @@ class __TextEditItemState extends State<_TextEditItem> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
       padding: const EdgeInsets.only(left: 16, right: 16),
       child: TextFormField(
         keyboardAppearance: Brightness.light,
@@ -359,7 +357,7 @@ class __TextEditItemState extends State<_TextEditItem> {
         controller: _textEditingController,
         focusNode: _focusNode,
         onChanged: _onTextChange,
-        cursorColor: Colors.grey,
+        cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
         cursorWidth: 1,
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
@@ -371,7 +369,7 @@ class __TextEditItemState extends State<_TextEditItem> {
             borderRadius: const BorderRadius.all(Radius.circular(4)),
           ),
           labelText: widget.title,
-          labelStyle: const TextStyle(color: Color(0xFF999999)),
+          labelStyle: Theme.of(context).textTheme.labelMedium,
           suffixIcon: _isTextEmpty || !_hasFocus
               ? const SizedBox()
               : GestureDetector(
@@ -381,10 +379,10 @@ class __TextEditItemState extends State<_TextEditItem> {
                         TextSelection.fromPosition(const TextPosition(offset: 0));
                     _onTextChange('');
                   },
-                  child: const Icon(
+                  child: Icon(
                     Icons.cancel,
                     size: 20,
-                    color: Colors.grey,
+                    color: Theme.of(context).inputDecorationTheme.suffixIconColor,
                   ),
                 ),
         ),

@@ -60,12 +60,9 @@ class _VideoPlayerSettingsPageState extends State<VideoPlayerSettingsPage> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             '使用内置播放器',
-            style: TextStyle(
-              color: Color(0xff333333),
-              fontSize: 18,
-            ),
+            style: Theme.of(context).textTheme.labelLarge,
           ),
           Switch(
             value: configs.useInnerPlayer,
@@ -208,7 +205,6 @@ class __TextEditItemState extends State<_TextEditItem> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.white,
       padding: const EdgeInsets.only(left: 16, right: 16),
       child: TextFormField(
         keyboardAppearance: Brightness.light,
@@ -216,7 +212,7 @@ class __TextEditItemState extends State<_TextEditItem> {
         controller: _textEditingController,
         focusNode: _focusNode,
         onChanged: _onTextChange,
-        cursorColor: Colors.grey,
+        cursorColor: Theme.of(context).textSelectionTheme.cursorColor,
         cursorWidth: 1,
         decoration: InputDecoration(
           enabledBorder: OutlineInputBorder(
@@ -228,7 +224,7 @@ class __TextEditItemState extends State<_TextEditItem> {
             borderRadius: const BorderRadius.all(Radius.circular(4)),
           ),
           labelText: widget.title,
-          labelStyle: const TextStyle(color: Color(0xFF999999)),
+          labelStyle: Theme.of(context).textTheme.labelMedium,
           suffixIcon: GestureDetector(
             onTap: () async {
               FilePickerResult? result = await FilePicker.platform.pickFiles();
