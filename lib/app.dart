@@ -69,4 +69,10 @@ class App {
       return _isAndroidTv!;
     }
   }
+
+  /// 是否启用文件管理, 需要服务器端支持文件上传和删除接口, 接口地址如下:
+  /// curl -F "file=@path_to_your_file" http://<hostUrl>/upload
+  /// curl -X DELETE http://<hostUrl>/delete/filename
+  // static bool enableManageRemoteFile = false;
+  static bool enableManageRemoteFile = true;
 }

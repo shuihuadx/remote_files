@@ -1,21 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:remote_files/data/configs.dart';
 import 'package:remote_files/data/db/http_disk_cache.dart';
 import 'package:remote_files/data/remote_files_parser.dart';
 import 'package:remote_files/entities/remote_file.dart';
 import 'package:remote_files/network/network_logger.dart';
 
-RemoteFilesFetcher remoteFilesFetcher = RemoteFilesFetcher._();
+NetworkHelper networkHelper = NetworkHelper._();
 
-class RemoteFilesFetcher {
+class NetworkHelper {
   Dio dio = Dio();
 
-  RemoteFilesFetcher._() {
+  NetworkHelper._() {
     dio.options.connectTimeout = const Duration(seconds: 8);
     dio.options.receiveTimeout = const Duration(seconds: 8);
     dio.options.responseType = ResponseType.plain;
@@ -132,6 +134,65 @@ class RemoteFilesFetcher {
       }
     } catch (e) {
       return 0;
+    }
+  }
+
+  Future<void> uploadFile({
+    required String filePath,
+    String? remotePath,
+    required String hostServerUrl,
+    required CancelToken cancelToken,
+    ProgressCallback? onUploadProgress,
+    Function()? onDone,
+    Function()? onCancel,
+    Function(Exception)? onFailed,
+  }) async {
+    File file = File(filePath);
+    // 读取文件大小
+    int uploadBytes = file.existsSync() ? file.lengthSync() : 0;
+    try {
+      var response = await dio.post(
+        '${hostServerUrl}upload/${remotePath ?? ""}',
+        data: FormData.fromMap({
+          'file': await MultipartFile.fromFile(
+            filePath,
+            filename: path.basename(filePath),
+          ),
+        }),
+        cancelToken: cancelToken,
+        onSendProgress: onUploadProgress,
+      );
+      dynamic data = json.decode(response.data);
+      String? code = data['code'];
+      String msg = data['msg'] ?? 'unknown error';
+      if ('1' == code) {
+        onDone?.call();
+      } else {
+        onFailed?.call(Exception(msg));
+      }
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) {
+        onCancel?.call();
+      } else {
+        onFailed?.call(error);
+      }
+    } on Exception catch (error) {
+      onFailed?.call(error);
+    }
+  }
+
+  Future<void> deleteRemoteFile({
+    required String remotePath,
+    required String hostServerUrl,
+  }) async {
+    var response = await dio.delete(
+      '${hostServerUrl}delete/$remotePath',
+    );
+    dynamic data = json.decode(response.data);
+    String? code = data['code'];
+    String msg = data['msg'] ?? 'unknown error';
+    if ('1' != code) {
+      throw Exception(msg);
     }
   }
 }

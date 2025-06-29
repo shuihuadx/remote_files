@@ -19,7 +19,9 @@ class LoadingWidget extends StatelessWidget {
       child: SizedBox(
         height: height,
         width: width,
-        child: const CircularProgressIndicator(),
+        child: const CircularProgressIndicator(
+          strokeCap: StrokeCap.round,
+        ),
       ),
     );
   }

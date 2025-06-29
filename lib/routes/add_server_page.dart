@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/services.dart';
 import 'package:remote_files/data/configs.dart';
-import 'package:remote_files/network/remote_files_fetcher.dart';
+import 'package:remote_files/network/network_helper.dart';
 import 'package:remote_files/routes/remote_files_page.dart';
 import 'package:remote_files/theme/app_theme.dart';
 import 'package:remote_files/utils/snack_utils.dart';
@@ -228,13 +228,13 @@ class _AddServerPageState extends State<AddServerPage> {
   Future<void> onOkClicked() async {
     // 验证是否能访问
     try {
-      await remoteFilesFetcher.fetchRemoteFiles(_serverUrl);
+      await networkHelper.fetchRemoteFiles(_serverUrl);
     } catch (e) {
       // 文件服务器无法访问时, 检查网络是否正常
       bool isNetworkOk = false;
       Object? reason;
       try {
-        isNetworkOk = await remoteFilesFetcher.checkNetwork();
+        isNetworkOk = await networkHelper.checkNetwork();
       } catch (e2) {
         reason = e2;
       }

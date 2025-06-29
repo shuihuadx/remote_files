@@ -28,7 +28,7 @@ class ReloadingView extends StatelessWidget {
               color: Colors.red,
               size: 200,
             ),
-            Container(height: 16),
+            const SizedBox(height: 16),
             errorReason?.isEmpty ?? true
                 ? const SizedBox()
                 : Container(
