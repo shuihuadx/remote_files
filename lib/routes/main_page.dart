@@ -56,7 +56,7 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: Colors.transparent,
+      color: Theme.of(context).scaffoldBackgroundColor,
       child: const LoadingWidget(
         width: 100,
         height: 100,
