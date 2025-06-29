@@ -263,7 +263,7 @@ class _FileUploadPageState extends State<FileUploadPage> {
                   padding: const EdgeInsets.only(),
                   child: Text(
                     exception?.toString() ?? 'unknown error',
-                    style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
+                    style: Theme.of(context).textTheme.bodySmall,
                   ),
                 )
               ],

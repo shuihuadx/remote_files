@@ -92,20 +92,14 @@ class _ServerListPageState extends State<ServerListPage> {
                                   remoteServers[index].serverName,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xff333333),
-                                    fontSize: 16,
-                                  ),
+                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
                                 const SizedBox(height: 4),
                                 Text(
                                   serverUrl,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: Color(0xff999999),
-                                    fontSize: 12,
-                                  ),
+                                  style: Theme.of(context).textTheme.bodySmall,
                                 ),
                               ],
                             ),
@@ -147,8 +141,8 @@ class _ServerListPageState extends State<ServerListPage> {
           );
         },
         separatorBuilder: (BuildContext context, int index) {
-          return const Divider(
-            color: Color(0xFFE5E5E5),
+          return Divider(
+            color: Theme.of(context).dividerColor,
             indent: 1,
             height: 0,
           );

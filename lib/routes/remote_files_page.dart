@@ -196,6 +196,7 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
             )
           : null,
       drawer: Drawer(
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         child: Builder(
           builder: (context) {
             return ListView(
@@ -213,7 +214,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                 ),
                 App.isWindows || App.isAndroid
                     ? ListTile(
-                        title: const Text('视频播放器设置'),
+                        title: Text(
+                          '视频播放器设置',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         onTap: () {
                           // 视频播放器设置
                           if (mounted) {
@@ -225,7 +229,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       )
                     : const SizedBox(),
                 ListTile(
-                  title: const Text('服务器管理'),
+                  title: Text(
+                    '服务器管理',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   onTap: () {
                     // 服务器管理
                     if (mounted) {
@@ -248,7 +255,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                 ),
                 enableDownload
                     ? ListTile(
-                        title: const Text('下载管理'),
+                        title: Text(
+                          '下载管理',
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
                         onTap: () {
                           // 服务器管理
                           if (mounted) {
@@ -259,7 +269,10 @@ class _RemoteFilesPageState extends State<RemoteFilesPage> {
                       )
                     : const SizedBox(),
                 ListTile(
-                  title: const Text('设置主题色'),
+                  title: Text(
+                    '设置主题色',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
                   onTap: () {
                     // 设置主题色
                     if (mounted) {
@@ -407,10 +420,7 @@ class FileItem extends StatelessWidget {
                             fileName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xff333333),
-                              fontSize: 16,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
                         Flexible(
@@ -418,10 +428,7 @@ class FileItem extends StatelessWidget {
                             url,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xff999999),
-                              fontSize: 12,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
                       ],

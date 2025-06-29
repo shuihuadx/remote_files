@@ -178,7 +178,7 @@ async fn main() -> std::io::Result<()> {
     .run()
     .await;
 
-    println!("server stop");
+    println!("stop");
 
     Ok(())
 }

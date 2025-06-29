@@ -193,10 +193,7 @@ class _FileItemState extends State<FileItem> {
                             fileName,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xff333333),
-                              fontSize: 16,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ),
                         Flexible(
@@ -204,10 +201,7 @@ class _FileItemState extends State<FileItem> {
                             fileUrl,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              color: Color(0xff999999),
-                              fontSize: 12,
-                            ),
+                            style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
                       ],
