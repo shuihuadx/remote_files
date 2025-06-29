@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:remote_files/app.dart';
 import 'package:video_player/video_player.dart';
-import 'package:wakelock_plus/wakelock_plus.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   static String get routeName => 'video_player_page';
@@ -78,14 +77,16 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
 
   @override
   void initState() {
-    WakelockPlus.enable();
+    // 加上这行代码后,会导致模拟器的 Android tv上视频播放异常
+    // WakelockPlus.enable();
     _init();
     super.initState();
   }
 
   @override
   void dispose() {
-    WakelockPlus.disable();
+    // 加上这行代码后,会导致模拟器的 Android tv上视频播放异常
+    // WakelockPlus.disable();
     videoPlayerController?.dispose();
     chewieController?.dispose();
     super.dispose();
